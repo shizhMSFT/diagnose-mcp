@@ -123,20 +123,20 @@
 
 ### Tests for User Story 3 (TDD - Write FIRST) ⚠️
 
-- [ ] T043 [P] [US3] Unit test: File creation detection in tests/unit/watcher/events_test.go
-- [ ] T044 [P] [US3] Unit test: Line append detection in tests/unit/watcher/events_test.go
-- [ ] T045 [P] [US3] Unit test: File deletion detection in tests/unit/watcher/events_test.go
-- [ ] T046 [P] [US3] Unit test: File state tracking (size, line count) in tests/unit/watcher/state_test.go
-- [ ] T047 [P] [US3] Integration test: File watching with real filesystem in tests/integration/file_watch_test.go
+- [x] T043 [P] [US3] Unit test: File creation detection in tests/unit/watcher/events_test.go
+- [x] T044 [P] [US3] Unit test: Line append detection in tests/unit/watcher/events_test.go
+- [x] T045 [P] [US3] Unit test: File deletion detection in tests/unit/watcher/events_test.go
+- [x] T046 [P] [US3] Unit test: File state tracking (size, line count) in tests/unit/watcher/state_test.go
+- [x] T047 [P] [US3] Integration test: File watching with real filesystem in tests/integration/file_watch_test.go
 
 ### Implementation for User Story 3
 
-- [ ] T048 [P] [US3] Define FileWatch entity in internal/watcher/state.go
-- [ ] T049 [P] [US3] Define FileEvent types and structures in internal/watcher/events.go
-- [ ] T050 [US3] Implement fsnotify watcher initialization in internal/watcher/watcher.go (depends on T048, T049)
-- [ ] T051 [US3] Implement file event detection (created, modified, deleted) in internal/watcher/events.go
-- [ ] T052 [US3] Implement line count tracking for text files in internal/watcher/state.go
-- [ ] T053 [US3] Implement file event logging integration in internal/watcher/watcher.go
+- [x] T048 [P] [US3] Define FileWatch entity in internal/watcher/state.go
+- [x] T049 [P] [US3] Define FileEvent types and structures in internal/watcher/events.go
+- [x] T050 [US3] Implement fsnotify watcher initialization in internal/watcher/events.go (depends on T048, T049)
+- [x] T051 [US3] Implement file event detection (created, modified, deleted) in internal/watcher/events.go
+- [x] T052 [US3] Implement line count tracking for text files in internal/watcher/state.go
+- [x] T053 [US3] Implement file event logging integration in internal/watcher/events.go
 - [ ] T054 [US3] Add --watch flag parsing (multiple allowed) in internal/config/config.go
 - [ ] T055 [US3] Integrate file watching into proxy session in internal/proxy/proxy.go
 - [ ] T056 [US3] Implement chronological event interleaving (MCP + file events) in internal/logger/logger.go
