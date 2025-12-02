@@ -116,10 +116,10 @@ On Write event:
 **Output Format Examples**:
 ```
 # Human-readable (default)
-2025-12-02T14:30:45.123Z INFO [C→S] tool_call method=list_files id=123
+2025-12-02T14:30:45.123Z INFO [C->S] tool_call method=list_files id=123
 
 # JSON (--json flag)
-{"time":"2025-12-02T14:30:45.123Z","level":"INFO","dir":"C→S","type":"request","method":"list_files","id":"123"}
+{"time":"2025-12-02T14:30:45.123Z","level":"INFO","dir":"C->S","type":"request","method":"list_files","id":"123"}
 ```
 
 **Alternatives Considered**:

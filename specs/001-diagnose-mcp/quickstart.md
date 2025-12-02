@@ -60,17 +60,17 @@ diagnose-mcp ./my-mcp-server
 **What you'll see** (example output):
 ```
 2025-12-02T14:30:45.123Z INFO [SYSTEM] Proxy started: local server ./my-mcp-server
-2025-12-02T14:30:45.200Z INFO [C→S] REQUEST id=1 method=initialize
-2025-12-02T14:30:45.250Z INFO [S→C] RESPONSE id=1 (success)
-2025-12-02T14:30:45.300Z INFO [C→S] REQUEST id=2 method=tools/list
-2025-12-02T14:30:45.320Z INFO [S→C] RESPONSE id=2 (success)
-2025-12-02T14:30:45.400Z INFO [C→S] REQUEST id=3 method=tools/call
-2025-12-02T14:30:45.450Z INFO [S→C] RESPONSE id=3 (success)
+2025-12-02T14:30:45.200Z INFO [C->S] REQUEST id=1 method=initialize
+2025-12-02T14:30:45.250Z INFO [S->C] RESPONSE id=1 (success)
+2025-12-02T14:30:45.300Z INFO [C->S] REQUEST id=2 method=tools/list
+2025-12-02T14:30:45.320Z INFO [S->C] RESPONSE id=2 (success)
+2025-12-02T14:30:45.400Z INFO [C->S] REQUEST id=3 method=tools/call
+2025-12-02T14:30:45.450Z INFO [S->C] RESPONSE id=3 (success)
 ```
 
 **Legend**:
-- `[C→S]`: Client sending to Server
-- `[S→C]`: Server responding to Client
+- `[C->S]`: Client sending to Server
+- `[S->C]`: Server responding to Client
 - `REQUEST/RESPONSE`: MCP message types
 
 ---
@@ -87,8 +87,8 @@ diagnose-mcp --verbose ./my-mcp-server
 
 **Output** (now includes params and results):
 ```
-2025-12-02T14:30:45.400Z INFO [C→S] REQUEST id=3 method=tools/call params={"name":"read_file","arguments":{"path":"/tmp/data.json"}}
-2025-12-02T14:30:45.450Z INFO [S→C] RESPONSE id=3 result={"content":[{"type":"text","text":"...file contents..."}]}
+2025-12-02T14:30:45.400Z INFO [C->S] REQUEST id=3 method=tools/call params={"name":"read_file","arguments":{"path":"/tmp/data.json"}}
+2025-12-02T14:30:45.450Z INFO [S->C] RESPONSE id=3 result={"content":[{"type":"text","text":"...file contents..."}]}
 ```
 
 ---
@@ -133,9 +133,9 @@ diagnose-mcp --watch /var/log/myserver.log ./my-mcp-server
 
 **Output** (interleaved MCP and file events):
 ```
-2025-12-02T14:30:45.400Z INFO [C→S] REQUEST id=3 method=tools/call
+2025-12-02T14:30:45.400Z INFO [C->S] REQUEST id=3 method=tools/call
 2025-12-02T14:30:45.420Z INFO [FILE] /var/log/myserver.log: +2 lines appended (total: 145 lines)
-2025-12-02T14:30:45.450Z INFO [S→C] RESPONSE id=3 (success)
+2025-12-02T14:30:45.450Z INFO [S->C] RESPONSE id=3 (success)
 ```
 
 **Multiple files**:
@@ -161,8 +161,8 @@ diagnose-mcp --remote wss://example.com/mcp
 **Output** (same logging format):
 ```
 2025-12-02T14:30:45.123Z INFO [SYSTEM] Proxy started: remote server wss://example.com/mcp
-2025-12-02T14:30:45.200Z INFO [C→S] REQUEST id=1 method=initialize
-2025-12-02T14:30:45.250Z INFO [S→C] RESPONSE id=1 (success)
+2025-12-02T14:30:45.200Z INFO [C->S] REQUEST id=1 method=initialize
+2025-12-02T14:30:45.250Z INFO [S->C] RESPONSE id=1 (success)
 ```
 
 **With authentication** (future enhancement):
@@ -211,7 +211,7 @@ jq -s 'group_by(.id) | map({id: .[0].id, method: .[0].method, duration: (.[1].ti
 **Solution**:
 ```bash
 diagnose-mcp --verbose my-mcp-server
-# Observe the initialize → initialized → tools/list → ... flow
+# Observe the initialize -> initialized -> tools/list -> ... flow
 ```
 
 ---
@@ -226,10 +226,10 @@ diagnose-mcp --json my-mcp-server > session-$(date +%Y%m%d-%H%M%S).jsonl
 ### Tip 2: Filter Logs by Direction
 ```bash
 # See only client requests
-diagnose-mcp my-mcp-server | grep "\[C→S\]"
+diagnose-mcp my-mcp-server | grep "\[C->S\]"
 
 # See only server responses
-diagnose-mcp my-mcp-server | grep "\[S→C\]"
+diagnose-mcp my-mcp-server | grep "\[S->C\]"
 ```
 
 ### Tip 3: Combine with Server Debug Logs

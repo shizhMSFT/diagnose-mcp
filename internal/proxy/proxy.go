@@ -168,9 +168,9 @@ func (p *Proxy) handleMessage(msg *MCPMessage) error {
 	}
 
 	if msg.Direction == MessageDirectionOutbound {
-		direction = "→"
+		direction = "->"
 	} else {
-		direction = "←"
+		direction = "<-"
 	}
 
 	// Create log entry

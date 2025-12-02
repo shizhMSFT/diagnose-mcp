@@ -48,7 +48,7 @@ type LogEntry struct {
 	// Type is the type of diagnostic event
 	Type LogEntryType
 
-	// Direction is "→" (outbound) or "←" (inbound) for messages
+	// Direction is "->" (outbound) or "<-" (inbound) for messages
 	Direction string
 
 	// Method is the MCP method name for requests/responses/notifications

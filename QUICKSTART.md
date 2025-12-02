@@ -82,8 +82,8 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | \
 2025-12-02T10:30:45.123Z [INFO] [proxy] Proxy session starting
 2025-12-02T10:30:45.150Z [INFO] [proxy] Server started
   Context: binary=go, args=[run test-server.go], pid=12345
-2025-12-02T10:30:45.200Z [INFO] [request] → initialize #1
-2025-12-02T10:30:45.250Z [INFO] [response] ← #1
+2025-12-02T10:30:45.200Z [INFO] [request] -> initialize #1
+2025-12-02T10:30:45.250Z [INFO] [response] <- #1
 2025-12-02T10:30:45.300Z [INFO] [proxy] Proxy session ended
   Context: duration=150ms, message_count=2, error_count=0
 ```
@@ -104,7 +104,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"test","params":{"key":"value"}}' | \
 
 Logs now include readable payloads:
 ```
-2025-12-02T10:30:45.200Z [INFO] [request] → test #1
+2025-12-02T10:30:45.200Z [INFO] [request] -> test #1
   Payload: {"jsonrpc":"2.0","id":1,"method":"test","params":{"key":"value"}}
 ```
 
@@ -123,7 +123,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"test"}' | \
 ```json
 {"timestamp":"2025-12-02T10:30:45.123Z","level":"INFO","type":"proxy","message":"Proxy session starting"}
 {"timestamp":"2025-12-02T10:30:45.150Z","level":"INFO","type":"proxy","message":"Server started","context":{"binary":"go","args":["run","test-server.go"],"pid":12345}}
-{"timestamp":"2025-12-02T10:30:45.200Z","level":"INFO","type":"request","direction":"→","method":"test","id":1,"message":"→ test"}
+{"timestamp":"2025-12-02T10:30:45.200Z","level":"INFO","type":"request","direction":"->","method":"test","id":1,"message":"-> test"}
 ```
 
 ### 5. Graceful shutdown

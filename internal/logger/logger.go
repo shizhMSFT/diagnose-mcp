@@ -47,7 +47,7 @@ func (l *Logger) formatText(entry *LogEntry) string {
 	entryType := fmt.Sprintf("[%s]", entry.Type)
 	parts = append(parts, entryType)
 
-	// Direction + Method (for messages): → initialize, ← initialized
+	// Direction + Method (for messages): -> initialize, <- initialized
 	if entry.Direction != "" {
 		var methodPart string
 		if entry.Method != "" {

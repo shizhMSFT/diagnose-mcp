@@ -41,15 +41,15 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"add","argu
 2025-12-02T10:30:45.150Z [INFO] [proxy] Server started
   Context: binary=python, args=[examples/example-mcp-server.py], pid=12345
 2025-12-02T10:30:45.200Z [INFO] [notification] initialized
-2025-12-02T10:30:45.210Z [INFO] [request] → initialize #1
-2025-12-02T10:30:45.250Z [INFO] [response] ← #1
+2025-12-02T10:30:45.210Z [INFO] [request] -> initialize #1
+2025-12-02T10:30:45.250Z [INFO] [response] <- #1
 ```
 
 **JSON format:**
 ```json
 {"timestamp":"2025-12-02T10:30:45.123Z","level":"INFO","type":"proxy","message":"Proxy session starting"}
 {"timestamp":"2025-12-02T10:30:45.200Z","level":"INFO","type":"notification","method":"initialized","message":"initialized"}
-{"timestamp":"2025-12-02T10:30:45.210Z","level":"INFO","type":"request","direction":"→","method":"initialize","id":1,"message":"→ initialize"}
+{"timestamp":"2025-12-02T10:30:45.210Z","level":"INFO","type":"request","direction":"->","method":"initialize","id":1,"message":"-> initialize"}
 ```
 
 ## Testing the Example

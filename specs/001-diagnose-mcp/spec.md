@@ -9,7 +9,7 @@
 
 ### Session 2025-12-02
 
-- Q: Which MCP protocol message types should diagnose-mcp log? → A: All MCP protocol messages including requests, responses, notifications, and progress updates
+- Q: Which MCP protocol message types should diagnose-mcp log? -> A: All MCP protocol messages including requests, responses, notifications, and progress updates
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -98,7 +98,7 @@ A developer wants to correlate MCP server behavior with log files or state files
 
 ### Key Entities
 
-- **MCP Message**: Represents a single MCP protocol request, response, notification, or progress update, containing message type, direction (client→server or server→client), timestamp, and payload content
+- **MCP Message**: Represents a single MCP protocol request, response, notification, or progress update, containing message type, direction (client->server or server->client), timestamp, and payload content
 - **Proxy Session**: Represents an active proxying session with connection details (local vs remote), target server information, start time, and configuration (verbosity, output format, watched files)
 - **File Watch**: Represents a monitored file with path, current state (exists/size/line count), and event history (creation, modifications, deletions)
 - **Log Entry**: Represents a single diagnostic log line with timestamp, entry type (MCP message, file event, system event), severity, and formatted content

@@ -31,7 +31,7 @@
 - `<level>`: Log level in uppercase
   - Values: `DEBUG`, `INFO`, `WARN`, `ERROR`
 - `<context>`: Context indicator in brackets
-  - For MCP messages: Direction (`C→S` or `S→C`)
+  - For MCP messages: Direction (`C->S` or `S->C`)
   - For file events: `FILE`
   - For system events: `SYSTEM`
 - `<message>`: Human-readable description
@@ -45,27 +45,27 @@
 
 #### MCP Request (Verbose Mode - with --verbose)
 ```
-2025-12-02T14:30:45.123Z INFO [C→S] REQUEST id=req-123 method=tools/call params={"name":"read_file","arguments":{"path":"/tmp/data.json"}}
+2025-12-02T14:30:45.123Z INFO [C->S] REQUEST id=req-123 method=tools/call params={"name":"read_file","arguments":{"path":"/tmp/data.json"}}
 ```
 
 #### MCP Response (Summary)
 ```
-2025-12-02T14:30:45.234Z INFO [S→C] RESPONSE id=req-123 (success)
+2025-12-02T14:30:45.234Z INFO [S->C] RESPONSE id=req-123 (success)
 ```
 
 #### MCP Response (Verbose)
 ```
-2025-12-02T14:30:45.234Z INFO [S→C] RESPONSE id=req-123 result={"content":[{"type":"text","text":"..."}]}
+2025-12-02T14:30:45.234Z INFO [S->C] RESPONSE id=req-123 result={"content":[{"type":"text","text":"..."}]}
 ```
 
 #### MCP Notification
 ```
-2025-12-02T14:30:46.000Z INFO [S→C] NOTIFICATION method=notifications/message params={"level":"info","message":"Processing started"}
+2025-12-02T14:30:46.000Z INFO [S->C] NOTIFICATION method=notifications/message params={"level":"info","message":"Processing started"}
 ```
 
 #### MCP Progress Notification
 ```
-2025-12-02T14:30:47.000Z INFO [S→C] PROGRESS token=req-123 progress=50/100
+2025-12-02T14:30:47.000Z INFO [S->C] PROGRESS token=req-123 progress=50/100
 ```
 
 #### File Event - Created
@@ -369,7 +369,7 @@
 - Example:
   ```bash
   diagnose-mcp my-server | grep "ERROR"
-  diagnose-mcp my-server | grep "\[C→S\]"
+  diagnose-mcp my-server | grep "\[C->S\]"
   ```
 
 ---
