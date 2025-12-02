@@ -157,7 +157,7 @@ A developer wants to correlate MCP server behavior with log files or state files
   **Mitigation**: Implement async logging with bounded queues; drop log entries under extreme load with counter of dropped messages
 
 - **R-002**: **Risk**: Binary data in MCP messages may break text-based logging assumptions  
-  **Mitigation**: Base64 encode binary payloads in logs; detect and handle binary vs. text content
+  **Mitigation**: ✅ IMPLEMENTED - Payloads automatically shown as readable text if printable UTF-8, or base64-encoded if binary
 
 - **R-003**: **Risk**: File watching may miss rapid successive changes if filesystem event granularity is coarse  
   **Mitigation**: Document limitation; use checksums or line counts to detect missed intermediate states

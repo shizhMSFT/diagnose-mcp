@@ -2,8 +2,10 @@
 package logger
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io"
+	"unicode/utf8"
 )
 
 // JSONLogger handles formatting and writing log entries in JSON format
@@ -69,7 +71,7 @@ func (l *JSONLogger) toJSONEntry(entry *LogEntry) *JSONEntry {
 
 	// Include payload if verbose mode is enabled
 	if l.verbose && entry.Payload != nil {
-		jsonEntry.Payload = entry.Payload
+		jsonEntry.Payload = formatPayloadForJSON(entry.Payload)
 	}
 
 	// Include error if present
@@ -87,4 +89,36 @@ func (l *JSONLogger) toJSONEntry(entry *LogEntry) *JSONEntry {
 // SetVerbose updates the verbose setting
 func (l *JSONLogger) SetVerbose(verbose bool) {
 	l.verbose = verbose
+}
+
+// formatPayloadForJSON converts payload to JSON-friendly format:
+// - If it's a byte array and printable UTF-8, return as string
+// - If it's a byte array but not printable, return as base64 string
+// - Otherwise, return as-is
+func formatPayloadForJSON(payload interface{}) interface{} {
+	// Check if it's a byte slice
+	if bytes, ok := payload.([]byte); ok {
+		// Check if it's valid UTF-8 and printable
+		if utf8.Valid(bytes) && isPrintableJSON(bytes) {
+			return string(bytes)
+		}
+		// Not printable, return as base64
+		return base64.StdEncoding.EncodeToString(bytes)
+	}
+	// Not a byte slice, return as-is
+	return payload
+}
+
+// isPrintableJSON checks if a byte slice contains only printable characters
+func isPrintableJSON(data []byte) bool {
+	for _, b := range data {
+		// Allow printable ASCII, tabs, newlines, and carriage returns
+		if b < 32 && b != '\t' && b != '\n' && b != '\r' {
+			return false
+		}
+		if b == 127 { // DEL character
+			return false
+		}
+	}
+	return true
 }

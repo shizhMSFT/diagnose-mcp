@@ -70,7 +70,7 @@ diagnose-mcp --remote <url> [options]
 - **Description**: Enable detailed logging (full message payloads, debug info)
 - **Effect**: 
   - If false: Log message summaries (method, id, direction)
-  - If true: Log full JSON payloads
+  - If true: Log full payloads (readable text for printable UTF-8, base64 for binary data)
 - **Example**:
   ```bash
   diagnose-mcp --verbose my-server

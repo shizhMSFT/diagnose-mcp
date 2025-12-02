@@ -77,6 +77,8 @@ diagnose-mcp ./my-mcp-server
 
 ### Example 2: Verbose Logging (See Full Payloads)
 
+**Note**: Payloads are automatically shown as readable text (if printable) or base64 (if binary).
+
 **Scenario**: You want to see the actual JSON content of messages.
 
 ```bash

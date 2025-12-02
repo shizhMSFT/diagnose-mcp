@@ -2,10 +2,12 @@
 package logger
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Logger handles formatting and writing log entries
@@ -95,7 +97,8 @@ func (l *Logger) formatText(entry *LogEntry) string {
 
 	// Payload (verbose mode only)
 	if l.verbose && entry.Payload != nil {
-		payloadLine := fmt.Sprintf("  Payload: %v", entry.Payload)
+		payload := formatPayload(entry.Payload)
+		payloadLine := fmt.Sprintf("  Payload: %s", payload)
 
 		// Truncate if too long
 		const maxLength = 1000
@@ -112,4 +115,36 @@ func (l *Logger) formatText(entry *LogEntry) string {
 // SetVerbose updates the verbose setting
 func (l *Logger) SetVerbose(verbose bool) {
 	l.verbose = verbose
+}
+
+// formatPayload converts payload to readable format:
+// - If it's a byte array and printable UTF-8, return as string
+// - If it's a byte array but not printable, return as base64
+// - Otherwise, return as-is
+func formatPayload(payload interface{}) string {
+	// Check if it's a byte slice
+	if bytes, ok := payload.([]byte); ok {
+		// Check if it's valid UTF-8 and printable
+		if utf8.Valid(bytes) && isPrintable(bytes) {
+			return string(bytes)
+		}
+		// Not printable, return as base64
+		return base64.StdEncoding.EncodeToString(bytes)
+	}
+	// Not a byte slice, return as-is
+	return fmt.Sprintf("%v", payload)
+}
+
+// isPrintable checks if a byte slice contains only printable characters
+func isPrintable(data []byte) bool {
+	for _, b := range data {
+		// Allow printable ASCII, tabs, newlines, and carriage returns
+		if b < 32 && b != '\t' && b != '\n' && b != '\r' {
+			return false
+		}
+		if b == 127 { // DEL character
+			return false
+		}
+	}
+	return true
 }

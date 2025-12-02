@@ -42,8 +42,8 @@
 - [x] T012 [P] Define configuration types (SessionConfig, ConnectionType) in internal/config/config.go
 - [x] T013 [P] Implement CLI flag parsing and validation in internal/config/config.go
 - [x] T014 [P] Define logger types (LogEntry, LogLevel, OutputFormat) in internal/logger/types.go
-- [x] T015 [P] Implement structured logger with text formatter in internal/logger/logger.go
-- [x] T016 [P] Implement structured logger with JSON formatter in internal/logger/formatter.go
+- [x] T015 [P] Implement structured logger with text formatter in internal/logger/logger.go (✨ Enhanced: Smart payload formatting - text vs base64)
+- [x] T016 [P] Implement structured logger with JSON formatter in internal/logger/formatter.go (✨ Enhanced: Smart payload formatting - text vs base64)
 - [x] T017 Define ProxySession entity in internal/proxy/session.go
 - [x] T018 Define MCPMessage entity in internal/proxy/message.go
 

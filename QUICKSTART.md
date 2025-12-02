@@ -102,11 +102,13 @@ echo '{"jsonrpc":"2.0","id":1,"method":"test","params":{"key":"value"}}' | \
   diagnose-mcp --verbose go run test-server.go
 ```
 
-Logs now include:
+Logs now include readable payloads:
 ```
 2025-12-02T10:30:45.200Z [INFO] [request] → test #1
   Payload: {"jsonrpc":"2.0","id":1,"method":"test","params":{"key":"value"}}
 ```
+
+**Note**: Payloads are shown as readable text if they contain printable characters, or as base64 encoding for binary data.
 
 ### 4. Use JSON output format
 

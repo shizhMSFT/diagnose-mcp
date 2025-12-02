@@ -326,6 +326,8 @@
 
 ### Verbose Mode (`--verbose`)
 - **MCP Messages**: Log full params and result fields
+  - Payloads shown as readable text if printable UTF-8
+  - Binary payloads automatically base64-encoded
 - **File Events**: Same as summary (already detailed)
 - **System Events**: Include configuration details
 - **Truncation**: Large payloads (>1KB) truncated with indicator

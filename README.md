@@ -7,8 +7,9 @@ MCP Protocol Proxy Server - A transparent proxy for debugging and monitoring Mod
 - **Local MCP Server Proxying**: Intercept and log all MCP messages between client and local server
 - **Transparent Pass-Through**: Messages are forwarded without modification
 - **Detailed Logging**: Track requests, responses, notifications, and progress updates
-- **Multiple Output Formats**: Human-readable text or machine-parsable JSON logs
-- **Verbose Mode**: Include full message payloads for deep debugging
+- **Text Format** (default): Human-readable timestamps, log levels, message types
+- **JSON Format** (`--json`): Structured output for parsing by other tools
+- **Verbose Mode** (`--verbose`): Include full message payloads (readable text or base64 for binary data)
 - **Environment Pass-Through**: Server inherits all parent environment variables
 - **Graceful Shutdown**: Signal handling (SIGTERM/SIGINT) with session statistics
 
