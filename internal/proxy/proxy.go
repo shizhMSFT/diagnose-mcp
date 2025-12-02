@@ -13,13 +13,14 @@ import (
 
 // Proxy coordinates the MCP proxy session with logging
 type Proxy struct {
-	config     *config.Config
-	localProxy *LocalProxy
-	logger     *logger.Logger
-	jsonLogger *logger.JSONLogger
-	logWriter  io.Writer
-	clientIn   io.Reader
-	clientOut  io.Writer
+	config      *config.Config
+	localProxy  *LocalProxy
+	remoteProxy *RemoteProxy
+	logger      *logger.Logger
+	jsonLogger  *logger.JSONLogger
+	logWriter   io.Writer
+	clientIn    io.Reader
+	clientOut   io.Writer
 }
 
 // NewProxy creates a new proxy instance
@@ -48,6 +49,41 @@ func NewProxy(cfg *config.Config) *Proxy {
 
 // Run starts the proxy session
 func (p *Proxy) Run(ctx context.Context) error {
+	// Check if remote mode
+	if p.config.ConnectionType == config.ConnectionTypeRemote {
+		return p.runRemoteProxy(ctx)
+	}
+
+	// Default to local mode
+	return p.runLocalProxy(ctx)
+}
+
+// runRemoteProxy runs the remote proxy mode
+func (p *Proxy) runRemoteProxy(ctx context.Context) error {
+	p.logEvent(logger.LogLevelInfo, logger.LogEntryTypeProxy, "Remote proxy session starting")
+
+	var err error
+	p.remoteProxy, err = NewRemoteProxy(p.config.RemoteURL)
+	if err != nil {
+		p.logError("Failed to create remote proxy", err)
+		return err
+	}
+
+	p.logProxyEvent("Connecting to remote server", map[string]interface{}{
+		"url": p.config.RemoteURL,
+	})
+
+	if err := p.remoteProxy.Run(ctx, p.logWriter); err != nil {
+		p.logError("Remote proxy error", err)
+		return err
+	}
+
+	p.logProxyEvent("Remote proxy session ended", map[string]interface{}{})
+	return nil
+}
+
+// runLocalProxy runs the local proxy mode
+func (p *Proxy) runLocalProxy(ctx context.Context) error {
 	// Log session start
 	p.logEvent(logger.LogLevelInfo, logger.LogEntryTypeProxy, "Proxy session starting")
 

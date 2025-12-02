@@ -94,20 +94,20 @@
 
 ### Tests for User Story 2 (TDD - Write FIRST) ⚠️
 
-- [ ] T032 [P] [US2] Unit test: WebSocket connection establishment in tests/unit/proxy/remote_test.go
-- [ ] T033 [P] [US2] Unit test: HTTP connection handling in tests/unit/proxy/remote_test.go
-- [ ] T034 [P] [US2] Unit test: Network error handling and retries in tests/unit/proxy/remote_test.go
-- [ ] T035 [P] [US2] Integration test: Full remote proxy flow with mock WebSocket server in tests/integration/remote_proxy_test.go
+- [x] T032 [P] [US2] Unit test: WebSocket connection establishment in tests/unit/proxy/remote_test.go
+- [x] T033 [P] [US2] Unit test: HTTP connection handling in tests/unit/proxy/remote_test.go
+- [x] T034 [P] [US2] Unit test: Network error handling and retries in tests/unit/proxy/remote_test.go
+- [x] T035 [P] [US2] Integration test: Full remote proxy flow with mock WebSocket server in tests/integration/remote_proxy_test.go
 
 ### Implementation for User Story 2
 
-- [ ] T036 [P] [US2] Implement WebSocket client connection (gorilla/websocket) in internal/proxy/remote.go
-- [ ] T037 [P] [US2] Implement HTTP connection handling in internal/proxy/remote.go
-- [ ] T038 [US2] Implement remote message forwarding (WebSocket frames) in internal/proxy/remote.go
-- [ ] T039 [US2] Add --remote flag parsing and URL validation in internal/config/validation.go
-- [ ] T040 [US2] Integrate remote mode into main CLI in cmd/diagnose-mcp/main.go
-- [ ] T041 [US2] Implement connection error handling and logging in internal/proxy/remote.go
-- [ ] T042 [US2] Add network timeout configuration (30s connect, 5m read) in internal/config/config.go
+- [x] T036 [P] [US2] Implement WebSocket client connection (gorilla/websocket) in internal/proxy/remote.go
+- [x] T037 [P] [US2] Implement HTTP connection handling in internal/proxy/remote.go
+- [x] T038 [US2] Implement remote message forwarding (WebSocket frames) in internal/proxy/remote.go
+- [x] T039 [US2] Add --remote flag parsing and URL validation in internal/config/validation.go
+- [x] T040 [US2] Integrate remote mode into main CLI in cmd/diagnose-mcp/main.go
+- [x] T041 [US2] Implement connection error handling and logging in internal/proxy/remote.go
+- [x] T042 [US2] Add network timeout configuration (30s connect, 5m read) in internal/config/config.go
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - local and remote proxying complete
 
