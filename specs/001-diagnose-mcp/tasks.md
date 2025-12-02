@@ -63,10 +63,10 @@
 
 > **NON-NEGOTIABLE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US1] Unit test: Local server process spawning in tests/unit/proxy/local_test.go
-- [ ] T020 [P] [US1] Unit test: Stdio message interception in tests/unit/proxy/message_test.go
-- [ ] T021 [P] [US1] Unit test: Environment variable pass-through in tests/unit/proxy/local_test.go
-- [ ] T022 [P] [US1] Integration test: Full local proxy flow with mock server in tests/integration/local_proxy_test.go
+- [x] T019 [P] [US1] Unit test: Local server process spawning in tests/unit/proxy/local_test.go
+- [x] T020 [P] [US1] Unit test: Stdio message interception in tests/unit/proxy/message_test.go
+- [x] T021 [P] [US1] Unit test: Environment variable pass-through in tests/unit/proxy/local_test.go
+- [x] T022 [P] [US1] Integration test: Full local proxy flow with mock server in tests/integration/local_proxy_test.go
 
 ### Implementation for User Story 1
 
