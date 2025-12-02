@@ -70,15 +70,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T023 [P] [US1] Implement local server process spawning (os/exec) in internal/proxy/local.go
-- [ ] T024 [P] [US1] Implement stdio pipe setup (stdin/stdout) in internal/proxy/local.go
-- [ ] T025 [US1] Implement message interception and forwarding logic in internal/proxy/message.go (depends on T023, T024)
-- [ ] T026 [US1] Implement environment variable pass-through in internal/proxy/local.go
-- [ ] T027 [US1] Implement MCP message logging integration (LogEntry creation) in internal/proxy/proxy.go
-- [ ] T028 [US1] Implement signal handling (SIGTERM/SIGINT) for graceful shutdown in cmd/diagnose-mcp/main.go
-- [ ] T029 [US1] Implement main CLI entry point with local mode support in cmd/diagnose-mcp/main.go
-- [ ] T030 [US1] Implement error handling and stderr separation in internal/proxy/proxy.go
-- [ ] T031 [US1] Add session statistics tracking (message count, bytes) in internal/proxy/session.go
+- [x] T023 [P] [US1] Implement local server process spawning (os/exec) in internal/proxy/local.go
+- [x] T024 [P] [US1] Implement stdio pipe setup (stdin/stdout) in internal/proxy/local.go
+- [x] T025 [US1] Implement message interception and forwarding logic in internal/proxy/message.go (depends on T023, T024)
+- [x] T026 [US1] Implement environment variable pass-through in internal/proxy/local.go
+- [x] T027 [US1] Implement MCP message logging integration (LogEntry creation) in internal/proxy/proxy.go
+- [x] T028 [US1] Implement signal handling (SIGTERM/SIGINT) for graceful shutdown in cmd/diagnose-mcp/main.go
+- [x] T029 [US1] Implement main CLI entry point with local mode support in cmd/diagnose-mcp/main.go
+- [x] T030 [US1] Implement error handling and stderr separation in internal/proxy/proxy.go
+- [x] T031 [US1] Add session statistics tracking (message count, bytes) in internal/proxy/session.go
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - can proxy local MCP servers with complete logging
 
