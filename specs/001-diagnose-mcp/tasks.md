@@ -137,9 +137,9 @@
 - [x] T051 [US3] Implement file event detection (created, modified, deleted) in internal/watcher/events.go
 - [x] T052 [US3] Implement line count tracking for text files in internal/watcher/state.go
 - [x] T053 [US3] Implement file event logging integration in internal/watcher/events.go
-- [ ] T054 [US3] Add --watch flag parsing (multiple allowed) in internal/config/config.go
-- [ ] T055 [US3] Integrate file watching into proxy session in internal/proxy/proxy.go
-- [ ] T056 [US3] Implement chronological event interleaving (MCP + file events) in internal/logger/logger.go
+- [x] T054 [US3] Add --watch flag parsing (multiple allowed) in internal/config/config.go
+- [x] T055 [US3] Integrate file watching into proxy session in internal/proxy/proxy.go
+- [x] T056 [US3] Implement chronological event interleaving (MCP + file events) in internal/logger/logger.go
 
 **Checkpoint**: All user stories (P1, P2, P3) are now independently functional and can be used together
 
@@ -149,10 +149,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T057 [P] Implement benchmark test for message passthrough latency in tests/benchmark/proxy_bench_test.go
-- [ ] T058 [P] Implement benchmark test for logging overhead in tests/benchmark/logger_bench_test.go
-- [ ] T059 [P] Add memory profiling test for 1-hour sessions in tests/benchmark/memory_bench_test.go
-- [ ] T060 [P] Verify ≥80% test coverage with `go test -cover` across all packages
+- [x] T057 [P] Implement benchmark test for message passthrough latency in tests/benchmark/proxy_bench_test.go
+- [x] T058 [P] Implement benchmark test for logging overhead in tests/benchmark/logging_bench_test.go
+- [x] T059 [P] Add memory profiling test for 1-hour sessions in tests/benchmark/memory_bench_test.go
+- [x] T060 [P] Verify ≥80% test coverage with `go test -cover` across all packages
 - [ ] T061 [P] Add godoc comments to all public functions in pkg/mcp/, internal/proxy/, internal/logger/, internal/watcher/
 - [ ] T062 [P] Verify cyclomatic complexity ≤10 with gocyclo or similar tool
 - [ ] T063 [P] Run golangci-lint and fix all issues (gofmt, go vet, staticcheck)

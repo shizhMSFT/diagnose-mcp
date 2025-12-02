@@ -9,6 +9,7 @@ import (
 
 	"github.com/shizhMSFT/diagnose-mcp/internal/config"
 	"github.com/shizhMSFT/diagnose-mcp/internal/logger"
+	"github.com/shizhMSFT/diagnose-mcp/internal/watcher"
 )
 
 // Proxy coordinates the MCP proxy session with logging
@@ -16,6 +17,7 @@ type Proxy struct {
 	config      *config.Config
 	localProxy  *LocalProxy
 	remoteProxy *RemoteProxy
+	fileWatcher *watcher.FileWatcher
 	logger      *logger.Logger
 	jsonLogger  *logger.JSONLogger
 	logWriter   io.Writer
@@ -87,6 +89,14 @@ func (p *Proxy) runLocalProxy(ctx context.Context) error {
 	// Log session start
 	p.logEvent(logger.LogLevelInfo, logger.LogEntryTypeProxy, "Proxy session starting")
 
+	// Start file watching if requested
+	if len(p.config.WatchedFiles) > 0 {
+		if err := p.startFileWatching(ctx); err != nil {
+			p.logError("Failed to start file watching", err)
+			// Continue anyway - file watching is optional
+		}
+	}
+
 	// Create and start local proxy
 	p.localProxy = NewLocalProxy(p.config.ServerBinary, p.config.ServerArgs)
 
@@ -121,12 +131,18 @@ func (p *Proxy) runLocalProxy(ctx context.Context) error {
 	select {
 	case err := <-errChan:
 		p.localProxy.Stop()
+		if p.fileWatcher != nil {
+			p.fileWatcher.Stop()
+		}
 		if err != nil && err != io.EOF {
 			p.logError("Proxy error", err)
 			return err
 		}
 	case <-ctx.Done():
 		p.localProxy.Stop()
+		if p.fileWatcher != nil {
+			p.fileWatcher.Stop()
+		}
 	}
 
 	// Log session statistics
@@ -315,5 +331,63 @@ func (ls *lineScanner) ReadLine() ([]byte, error) {
 				return line, nil
 			}
 		}
+	}
+}
+
+// startFileWatching initializes file watching for configured files
+func (p *Proxy) startFileWatching(ctx context.Context) error {
+	fw, err := watcher.NewFileWatcher()
+	if err != nil {
+		return fmt.Errorf("failed to create file watcher: %w", err)
+	}
+
+	p.fileWatcher = fw
+
+	// Create event channel
+	eventChan := make(chan watcher.FileEvent, 100)
+
+	// Watch all configured files
+	for _, filePath := range p.config.WatchedFiles {
+		if err := fw.Watch(filePath, eventChan); err != nil {
+			p.logError(fmt.Sprintf("Failed to watch file: %s", filePath), err)
+			continue
+		}
+		p.logFileEvent("Started watching file", filePath, nil)
+	}
+
+	// Start goroutine to handle file events
+	go p.handleFileEvents(ctx, eventChan)
+
+	return nil
+}
+
+// handleFileEvents processes file system events
+func (p *Proxy) handleFileEvents(ctx context.Context, eventChan <-chan watcher.FileEvent) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event := <-eventChan:
+			p.logFileEvent(string(event.Type), event.Path, map[string]interface{}{
+				"size":        event.Size,
+				"lines_added": event.LinesAdded,
+			})
+		}
+	}
+}
+
+// logFileEvent logs a file system event
+func (p *Proxy) logFileEvent(eventType string, path string, details map[string]interface{}) {
+	entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, eventType)
+	entry.Context = details
+	if entry.Context == nil {
+		entry.Context = make(map[string]interface{})
+	}
+	entry.Context["path"] = path
+
+	if p.jsonLogger != nil {
+		p.jsonLogger.Log(entry)
+	} else if p.logger != nil {
+		p.logger.Log(entry)
 	}
 }
