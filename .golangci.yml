@@ -1,0 +1,53 @@
+---
+# golangci-lint configuration for diagnose-mcp
+# Constitution requirement: Automated linting configured
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - gofmt          # Check formatting
+    - govet          # Standard Go analyzer
+    - staticcheck    # Advanced static analysis
+    - errcheck       # Check unchecked errors
+    - gosimple       # Simplify code suggestions
+    - ineffassign    # Detect ineffectual assignments
+    - unused         # Find unused code
+    - gocyclo        # Cyclomatic complexity (≤10 per constitution)
+    - misspell       # Spell checking
+    - revive         # Replacement for golint
+    - goconst        # Find repeated strings that could be constants
+    - unconvert      # Remove unnecessary type conversions
+    - gosec          # Security issues
+
+linters-settings:
+  gocyclo:
+    min-complexity: 10  # Constitution requirement: cyclomatic complexity ≤10
+  
+  govet:
+    check-shadowing: true
+  
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  
+  exclude-rules:
+    # Exclude some linters from running on tests
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true

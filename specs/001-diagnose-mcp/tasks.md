@@ -19,11 +19,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize Go module with `go mod init github.com/shizhMSFT/diagnose-mcp` in repository root
-- [ ] T002 [P] Create project directory structure (cmd/diagnose-mcp/, internal/, pkg/mcp/, tests/)
-- [ ] T003 [P] Add dependencies: `go get github.com/gorilla/websocket@v1.5.1 github.com/fsnotify/fsnotify@v1.7.0`
-- [ ] T004 [P] Create .golangci.yml linter configuration in repository root
-- [ ] T005 [P] Create Makefile with targets: build, test, lint, clean, run in repository root
+- [x] T001 Initialize Go module with `go mod init github.com/shizhMSFT/diagnose-mcp` in repository root
+- [x] T002 [P] Create project directory structure (cmd/diagnose-mcp/, internal/, pkg/mcp/, tests/)
+- [x] T003 [P] Add dependencies: `go get github.com/gorilla/websocket@v1.5.1 github.com/fsnotify/fsnotify@v1.7.0`
+- [x] T004 [P] Create .golangci.yml linter configuration in repository root
+- [x] T005 [P] Create Makefile with targets: build, test, lint, clean, run in repository root
 - [ ] T006 [P] Create go.work file if needed for local development workspace
 
 ---
@@ -34,18 +34,18 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 [P] Contract test: CLI flag parsing in tests/contract/cli_interface_test.go
-- [ ] T008 [P] Contract test: MCP protocol message validation in tests/contract/mcp_protocol_test.go
-- [ ] T009 [P] Contract test: Log output format validation in tests/contract/log_output_test.go
-- [ ] T010 [P] Define MCP protocol types (JSON-RPC structures) in pkg/mcp/types.go
-- [ ] T011 [P] Implement MCP message parser (JSON unmarshaling, type detection) in pkg/mcp/parser.go
-- [ ] T012 [P] Define configuration types (SessionConfig, ConnectionType) in internal/config/config.go
-- [ ] T013 [P] Implement CLI flag parsing and validation in internal/config/config.go
-- [ ] T014 [P] Define logger types (LogEntry, LogLevel, OutputFormat) in internal/logger/types.go
-- [ ] T015 [P] Implement structured logger with text formatter in internal/logger/logger.go
-- [ ] T016 [P] Implement structured logger with JSON formatter in internal/logger/formatter.go
-- [ ] T017 Define ProxySession entity in internal/proxy/session.go
-- [ ] T018 Define MCPMessage entity in internal/proxy/message.go
+- [x] T007 [P] Contract test: CLI flag parsing in tests/contract/cli_interface_test.go
+- [x] T008 [P] Contract test: MCP protocol message validation in tests/contract/mcp_protocol_test.go
+- [x] T009 [P] Contract test: Log output format validation in tests/contract/log_output_test.go
+- [x] T010 [P] Define MCP protocol types (JSON-RPC structures) in pkg/mcp/types.go
+- [x] T011 [P] Implement MCP message parser (JSON unmarshaling, type detection) in pkg/mcp/parser.go
+- [x] T012 [P] Define configuration types (SessionConfig, ConnectionType) in internal/config/config.go
+- [x] T013 [P] Implement CLI flag parsing and validation in internal/config/config.go
+- [x] T014 [P] Define logger types (LogEntry, LogLevel, OutputFormat) in internal/logger/types.go
+- [x] T015 [P] Implement structured logger with text formatter in internal/logger/logger.go
+- [x] T016 [P] Implement structured logger with JSON formatter in internal/logger/formatter.go
+- [x] T017 Define ProxySession entity in internal/proxy/session.go
+- [x] T018 Define MCPMessage entity in internal/proxy/message.go
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
