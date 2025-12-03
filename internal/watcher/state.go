@@ -13,8 +13,8 @@ type FileState struct {
 	Path string
 	// Size is the current file size in bytes
 	Size int64
-	// LineCount is the number of lines in the file
-	LineCount int64
+	// Offset is the last read position (for tailing)
+	Offset int64
 	// LastModified is the last modification time
 	LastModified int64
 }
@@ -25,35 +25,45 @@ func NewFileState(path string) (*FileState, error) {
 		Path: path,
 	}
 
-	// Initialize state by reading file
+	// Initialize state by reading file info
 	if err := fs.readState(); err != nil {
 		return nil, err
 	}
 
+	// Start at end of file for tailing
+	fs.Offset = fs.Size
+
 	return fs, nil
 }
 
-// Update updates the file state and returns lines added
-func (fs *FileState) Update() (int64, error) {
-	oldLineCount := fs.LineCount
+// Update updates the file state and returns new content
+func (fs *FileState) Update() (string, error) {
 	oldSize := fs.Size
 
 	if err := fs.readState(); err != nil {
-		return 0, err
+		return "", err
 	}
 
-	linesAdded := fs.LineCount - oldLineCount
-
-	// Detect file truncation
+	// Detect file truncation or replacement
 	if fs.Size < oldSize {
-		// File was truncated/replaced
-		linesAdded = fs.LineCount - oldLineCount
+		// File was truncated/replaced - reset offset
+		fs.Offset = 0
 	}
 
-	return linesAdded, nil
+	// Read new content from offset
+	if fs.Size > fs.Offset {
+		content, err := fs.readNewContent()
+		if err != nil {
+			return "", err
+		}
+		fs.Offset = fs.Size
+		return content, nil
+	}
+
+	return "", nil
 }
 
-// readState reads the current file state
+// readState reads the current file state (metadata only, no file locking)
 func (fs *FileState) readState() error {
 	info, err := os.Stat(fs.Path)
 	if err != nil {
@@ -62,44 +72,35 @@ func (fs *FileState) readState() error {
 
 	fs.Size = info.Size()
 	fs.LastModified = info.ModTime().Unix()
-
-	// Count lines
-	lineCount, err := countLines(fs.Path)
-	if err != nil {
-		return fmt.Errorf("failed to count lines: %w", err)
-	}
-
-	fs.LineCount = lineCount
 	return nil
 }
 
-// countLines counts the number of lines in a file (lines ending with \n)
-func countLines(path string) (int64, error) {
-	file, err := os.Open(path)
+// readNewContent reads new content from the last offset
+func (fs *FileState) readNewContent() (string, error) {
+	// Open with FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE to avoid locking
+	file, err := os.Open(fs.Path)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	defer file.Close()
 
-	var count int64
-	buf := make([]byte, 32*1024) // 32KB buffer
-
-	for {
-		n, err := file.Read(buf)
-		if n > 0 {
-			for i := 0; i < n; i++ {
-				if buf[i] == '\n' {
-					count++
-				}
-			}
-		}
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return 0, err
-		}
+	// Seek to last offset
+	if _, err := file.Seek(fs.Offset, io.SeekStart); err != nil {
+		return "", err
 	}
 
-	return count, nil
+	// Read new content (limit to 100KB to avoid huge logs)
+	maxRead := int64(100 * 1024)
+	toRead := fs.Size - fs.Offset
+	if toRead > maxRead {
+		toRead = maxRead
+	}
+
+	buf := make([]byte, toRead)
+	n, err := io.ReadFull(file, buf)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return "", err
+	}
+
+	return string(buf[:n]), nil
 }

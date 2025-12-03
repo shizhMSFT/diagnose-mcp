@@ -30,8 +30,8 @@ type FileEvent struct {
 	Path string
 	// Timestamp when the event occurred
 	Timestamp time.Time
-	// LinesAdded is the number of lines added (for modifications)
-	LinesAdded int64
+	// Content is the new content added (for modifications)
+	Content string
 	// Size is the current file size in bytes
 	Size int64
 }
@@ -93,7 +93,7 @@ func (w *FileWatcher) Watch(path string, eventChan chan<- FileEvent) error {
 		state = &FileState{
 			Path:         absPath,
 			Size:         0,
-			LineCount:    0,
+			Offset:       0,
 			LastModified: 0,
 		}
 	}
@@ -166,14 +166,13 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) {
 		if newState, err := NewFileState(event.Name); err == nil {
 			w.states[event.Name] = newState
 			fileEvent.Size = newState.Size
-			fileEvent.LinesAdded = newState.LineCount
 		}
 
 	case event.Op&fsnotify.Write == fsnotify.Write:
 		fileEvent.Type = EventTypeModified
-		// Update state and calculate lines added
-		if linesAdded, err := state.Update(); err == nil {
-			fileEvent.LinesAdded = linesAdded
+		// Update state and get new content
+		if content, err := state.Update(); err == nil {
+			fileEvent.Content = content
 			fileEvent.Size = state.Size
 		}
 

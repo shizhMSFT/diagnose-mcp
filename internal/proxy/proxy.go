@@ -409,7 +409,9 @@ func (p *Proxy) startFileWatching(ctx context.Context) error {
 			p.logError(fmt.Sprintf("Failed to watch file: %s", filePath), err)
 			continue
 		}
-		p.logFileEvent("Started watching file", filePath, nil)
+		p.logFileEvent("watching", map[string]interface{}{
+			"path": filePath,
+		})
 	}
 
 	// Start goroutine to handle file events
@@ -425,22 +427,23 @@ func (p *Proxy) handleFileEvents(ctx context.Context, eventChan <-chan watcher.F
 		case <-ctx.Done():
 			return
 		case event := <-eventChan:
-			p.logFileEvent(string(event.Type), event.Path, map[string]interface{}{
-				"size":        event.Size,
-				"lines_added": event.LinesAdded,
-			})
+			details := map[string]interface{}{
+				"size": event.Size,
+				"path": event.Path,
+			}
+			// Include content if available (for modified events)
+			if event.Content != "" {
+				details["content"] = event.Content
+			}
+			p.logFileEvent(string(event.Type), details)
 		}
 	}
 }
 
 // logFileEvent logs a file system event
-func (p *Proxy) logFileEvent(eventType string, path string, details map[string]interface{}) {
+func (p *Proxy) logFileEvent(eventType string, details map[string]interface{}) {
 	entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, eventType)
 	entry.Context = details
-	if entry.Context == nil {
-		entry.Context = make(map[string]interface{})
-	}
-	entry.Context["path"] = path
 
 	if p.jsonLogger != nil {
 		p.jsonLogger.Log(entry)

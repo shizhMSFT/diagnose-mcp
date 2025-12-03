@@ -9,18 +9,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// T046: Unit test - File state tracking (size, line count)
-func TestFileState_TracksLineCount(t *testing.T) {
+// T046: Unit test - File state tracking (size, offset for tailing)
+func TestFileState_TracksOffset(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.log")
 
-	// Create file with 3 lines
+	// Create file with content
 	os.WriteFile(testFile, []byte("line 1\nline 2\nline 3\n"), 0644)
 
 	state, err := watcher.NewFileState(testFile)
 	require.NoError(t, err)
 
-	require.Equal(t, int64(3), state.LineCount)
+	// Offset should be at end of file for tailing
+	require.Equal(t, state.Size, state.Offset)
 	require.Greater(t, state.Size, int64(0))
 }
 
@@ -46,20 +47,19 @@ func TestFileState_UpdateDetectsChanges(t *testing.T) {
 	state, err := watcher.NewFileState(testFile)
 	require.NoError(t, err)
 
-	oldLineCount := state.LineCount
 	oldSize := state.Size
 
 	// Append lines
 	f, _ := os.OpenFile(testFile, os.O_APPEND|os.O_WRONLY, 0644)
-	f.WriteString("line 2\nline 3\n")
+	newContent := "line 2\nline 3\n"
+	f.WriteString(newContent)
 	f.Close()
 
 	// Update state
-	linesAdded, err := state.Update()
+	content, err := state.Update()
 	require.NoError(t, err)
 
-	require.Equal(t, int64(2), linesAdded)
-	require.Equal(t, oldLineCount+2, state.LineCount)
+	require.Equal(t, newContent, content)
 	require.Greater(t, state.Size, oldSize)
 }
 
@@ -72,7 +72,9 @@ func TestFileState_HandlesEmptyFile(t *testing.T) {
 	state, err := watcher.NewFileState(testFile)
 	require.NoError(t, err)
 
-	require.Equal(t, int64(0), state.LineCount)
+	require.Equal(t, int64(0), state.Size)
+	require.Equal(t, int64(0), state.Offset)
+}
 	require.Equal(t, int64(0), state.Size)
 }
 
