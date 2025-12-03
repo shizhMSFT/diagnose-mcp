@@ -88,27 +88,29 @@ Initializing → Active → Shutting Down → Terminated
 - `State` (FileState struct):
   - `Exists` (bool): Whether file currently exists
   - `Size` (int64): Current file size in bytes
-  - `LineCount` (int64): Current number of lines (if text file)
+  - `Offset` (int64): Last read position for tail-like behavior
   - `LastModified` (time.Time): Last modification timestamp
 - `EventHistory` ([]FileEvent): Recent events (ring buffer, max 100 entries)
 
 **FileEvent Structure**:
 - `Timestamp` (time.Time): When event occurred
-- `EventType` (FileEventType enum): `Created`, `Modified`, `Deleted`, `LineAppended`
-- `Details` (string): Human-readable description (e.g., "+42 lines appended")
-- `Delta` (int64): Size or line count change
+- `EventType` (FileEventType enum): `Created`, `Modified`, `Deleted`
+- `Path` (string): File path
+- `Content` (string): New content added (for Modified events, up to 100KB)
+- `Size` (int64): Current file size after event
 
 **Validation Rules**:
 - `FilePath` MUST be non-empty
 - `FilePath` MUST be absolute or resolvable relative path
-- `Size` and `LineCount` MUST be non-negative
+- `Size` and `Offset` MUST be non-negative
+- `Offset` MUST be ≤ `Size`
 - `EventHistory` bounded to prevent unbounded memory growth
 
 **State Transitions**:
 ```
 NotExists → Exists (Created event)
 Exists → NotExists (Deleted event)
-Exists → Exists (Modified/LineAppended events)
+Exists → Exists (Modified events with content changes)
 ```
 
 **Relationships**:
@@ -141,15 +143,18 @@ Exists → Exists (Modified/LineAppended events)
 
 **Formatting**:
 ```
-# Text format (human-readable)
-2025-12-02T14:30:45.123Z INFO [C→S] REQUEST id=123 method=list_files
-2025-12-02T14:30:45.234Z INFO [S→C] RESPONSE id=123 result=[...]
-2025-12-02T14:30:45.345Z INFO [FILE] /tmp/server.log: +5 lines appended
+# Text format (human-readable, single line)
+2025-12-02T14:30:45.123Z [INFO] [request] id=123 method=list_files
+2025-12-02T14:30:45.234Z [INFO] [response] id=123 
+2025-12-02T14:30:45.345Z [INFO] [file] created /tmp/server.log
+2025-12-02T14:30:45.456Z [INFO] [file] modified /tmp/server.log
+  Context: content="new log line\n"
 
 # JSON format (machine-parsable)
-{"time":"2025-12-02T14:30:45.123Z","level":"INFO","type":"mcp_message","dir":"C→S","mcp_type":"request","id":"123","method":"list_files"}
-{"time":"2025-12-02T14:30:45.234Z","level":"INFO","type":"mcp_message","dir":"S→C","mcp_type":"response","id":"123"}
-{"time":"2025-12-02T14:30:45.345Z","level":"INFO","type":"file_event","path":"/tmp/server.log","event":"line_appended","delta":5}
+{"time":"2025-12-02T14:30:45.123Z","level":"INFO","type":"request","message":"id=123 method=list_files"}
+{"time":"2025-12-02T14:30:45.234Z","level":"INFO","type":"response","message":"id=123"}
+{"time":"2025-12-02T14:30:45.345Z","level":"INFO","type":"file","message":"created /tmp/server.log"}
+{"time":"2025-12-02T14:30:45.456Z","level":"INFO","type":"file","message":"modified /tmp/server.log","context":{"content":"new log line\n"}}
 ```
 
 **Relationships**:
@@ -210,7 +215,6 @@ const (
     FileCreated FileEventType = iota
     FileModified
     FileDeleted
-    LineAppended  // Special case of Modified
 )
 ```
 

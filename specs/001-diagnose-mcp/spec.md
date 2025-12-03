@@ -49,7 +49,7 @@ A developer needs to diagnose an MCP server running on a remote machine or acces
 
 ### User Story 3 - Monitor External Files During Session (Priority: P3)
 
-A developer wants to correlate MCP server behavior with log files or state files the server writes. They run `diagnose-mcp --watch /path/to/server.log --watch /path/to/state.json my-mcp-server` and observe file change events (creation, line appends, deletion) logged alongside MCP protocol messages in chronological order.
+A developer wants to correlate MCP server behavior with log files or state files the server writes. They run `diagnose-mcp --watch /path/to/server.log --watch /path/to/state.json my-mcp-server` and observe file change events (creation, content appends, deletion) with new content displayed alongside MCP protocol messages in chronological order.
 
 **Why this priority**: Enhances diagnostic context by correlating MCP traffic with external file system activity. Valuable but not essential for basic proxy functionality.
 
@@ -58,7 +58,7 @@ A developer wants to correlate MCP server behavior with log files or state files
 **Acceptance Scenarios**:
 
 1. **Given** user specifies `--watch /path/to/file.log`, **When** diagnose-mcp starts, **Then** it monitors the file and logs its initial state (exists/size or not found)
-2. **Given** a file is being watched, **When** new lines are appended to the file, **Then** diagnose-mcp logs the event with timestamp, file path, and number of lines added
+2. **Given** a file is being watched, **When** new content is appended to the file, **Then** diagnose-mcp logs the event with timestamp, file path, and the new content (up to 100KB per event)
 3. **Given** a file is being watched, **When** the file is deleted, **Then** diagnose-mcp logs the deletion event and continues monitoring for recreation
 4. **Given** a file is being watched, **When** the file is created (was not present at startup), **Then** diagnose-mcp logs the creation event with timestamp and initial size
 5. **Given** multiple files are watched, **When** events occur simultaneously, **Then** all events are logged in chronological order interleaved with MCP protocol messages
@@ -71,6 +71,7 @@ A developer wants to correlate MCP server behavior with log files or state files
 - How does the system handle malformed MCP protocol messages from either client or server?
 - What happens when stdout/stderr buffers fill up during high-volume logging?
 - How does file watching behave with files on network drives or with permissions issues?
+- Does file watching lock files and prevent other processes from modifying or deleting them?
 - What happens when the proxied server spawns child processes or forks?
 - How does the system handle binary data in MCP messages vs. text-based logging?
 - What happens when a watched file is truncated or completely rewritten?
@@ -88,7 +89,7 @@ A developer wants to correlate MCP server behavior with log files or state files
 - **FR-006**: System MUST forward MCP protocol messages transparently without modifying content or introducing protocol errors
 - **FR-007**: System MUST support a `--remote <url>` option to proxy a remote MCP server via HTTP/WebSocket transport
 - **FR-008**: System MUST accept one or more `--watch <file-path>` options to monitor text-based files
-- **FR-009**: System MUST detect and log file events: creation, deletion, and line appends for watched files
+- **FR-009**: System MUST detect and log file events: creation, deletion, and content appends (with content displayed) for watched files, without locking files
 - **FR-010**: System MUST interleave file event logs with MCP protocol logs in chronological order
 - **FR-011**: System MUST provide a `--verbose` flag to control log verbosity (detailed vs. summary logging)
 - **FR-012**: System MUST output logs in both human-readable format (default) and JSON format (when `--json` flag specified)
@@ -100,7 +101,7 @@ A developer wants to correlate MCP server behavior with log files or state files
 
 - **MCP Message**: Represents a single MCP protocol request, response, notification, or progress update, containing message type, direction (client->server or server->client), timestamp, and payload content
 - **Proxy Session**: Represents an active proxying session with connection details (local vs remote), target server information, start time, and configuration (verbosity, output format, watched files)
-- **File Watch**: Represents a monitored file with path, current state (exists/size/line count), and event history (creation, modifications, deletions)
+- **File Watch**: Represents a monitored file with path, current state (exists/size/offset), and event history (creation, modifications with content, deletions), using tail-like non-blocking read access
 - **Log Entry**: Represents a single diagnostic log line with timestamp, entry type (MCP message, file event, system event), severity, and formatted content
 
 ## Success Criteria *(mandatory)*
@@ -160,7 +161,10 @@ A developer wants to correlate MCP server behavior with log files or state files
   **Mitigation**: ✅ IMPLEMENTED - Payloads automatically shown as readable text if printable UTF-8, or base64-encoded if binary
 
 - **R-003**: **Risk**: File watching may miss rapid successive changes if filesystem event granularity is coarse  
-  **Mitigation**: Document limitation; use checksums or line counts to detect missed intermediate states
+  **Mitigation**: Use offset tracking to detect all changes; limit content display to 100KB per event to avoid memory issues
+
+- **R-005**: **Risk**: File watching on Windows may lock files and prevent other processes from modifying or deleting them  
+  **Mitigation**: ✅ IMPLEMENTED - Use platform-specific file sharing flags (FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE on Windows) to allow concurrent access
 
 - **R-004**: **Risk**: Proxied server may not flush stdout, causing protocol messages to be buffered and delayed  
   **Mitigation**: Document requirement for servers to flush stdio; detect and log warning if buffering detected

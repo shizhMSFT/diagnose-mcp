@@ -70,17 +70,18 @@
 
 #### File Event - Created
 ```
-2025-12-02T14:30:48.000Z INFO [FILE] /tmp/server.log: created (size=0)
+2025-12-02T14:30:48.000Z [INFO] [file] created /tmp/server.log
 ```
 
-#### File Event - Line Appended
+#### File Event - Modified (with content)
 ```
-2025-12-02T14:30:49.000Z INFO [FILE] /tmp/server.log: +5 lines appended (total: 42 lines)
+2025-12-02T14:30:49.000Z [INFO] [file] modified /tmp/server.log
+  Context: content="new log line\n"
 ```
 
 #### File Event - Deleted
 ```
-2025-12-02T14:30:50.000Z INFO [FILE] /tmp/server.log: deleted
+2025-12-02T14:30:50.000Z [INFO] [file] deleted /tmp/server.log
 ```
 
 #### System Event - Startup
@@ -197,16 +198,16 @@
 }
 ```
 
-#### File Event - Line Appended
+#### File Event - Modified
 ```json
 {
   "time": "2025-12-02T14:30:49.000Z",
   "level": "INFO",
-  "type": "file_event",
-  "event": "line_appended",
-  "path": "/tmp/server.log",
-  "delta": 5,
-  "total_lines": 42
+  "type": "file",
+  "message": "modified /tmp/server.log",
+  "context": {
+    "content": "new log line\n"
+  }
 }
 ```
 
@@ -294,11 +295,10 @@
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `event` | string enum | Yes | created, modified, deleted, line_appended |
+| `event` | string enum | Yes | created, modified, deleted |
 | `path` | string | Yes | Absolute path to file |
-| `size` | number | For created | File size in bytes |
-| `delta` | number | For line_appended | Number of lines added |
-| `total_lines` | number | For line_appended | Total line count after append |
+| `size` | number | For modified | File size in bytes |
+| `content` | string | For modified | New content added (up to 100KB) |
 
 ### System Event Fields
 

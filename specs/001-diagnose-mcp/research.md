@@ -73,23 +73,27 @@
   - Pros: Simple, no OS dependencies
   - Cons: Higher latency (100ms+ poll interval), higher CPU usage
 
-**Decision**: Use `github.com/fsnotify/fsnotify` v1.7.0 with custom line-counting logic
+**Decision**: Use `github.com/fsnotify/fsnotify` v1.7.0 with tail-like content reading
 
-**Rationale**: Native OS event APIs provide lowest latency (<500ms requirement). For "line append" detection, will track file size and read new bytes to count newlines.
+**Rationale**: Native OS event APIs provide lowest latency (<500ms requirement). For content display, will track file offset and read new content on Write events (similar to `tail -f` behavior).
 
 **Implementation Approach**:
 ```
 On Write event:
-  1. Get new file size
-  2. Seek to previous size position
-  3. Read new bytes
-  4. Count newlines in delta
-  5. Log: "File X: +N lines appended"
+  1. Get new file size via os.Stat()
+  2. If size > offset, read from offset to size
+  3. Display new content (limit to 100KB per event)
+  4. Update offset to current size
+  5. Log: "modified <path>" with content in context
 ```
+
+**Platform-Specific File Access**:
+- **Windows**: Use syscall.CreateFile() with FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE to avoid locking files
+- **Unix/Linux**: Use os.Open() (no exclusive locking by default)
 
 **Alternatives Considered**:
 - Polling every 100ms → Rejected: Wasteful CPU, inconsistent latency
-- tail-like implementation → Rejected: Complexity not needed, fsnotify + size tracking sufficient
+- Line counting implementation → Rejected: Requires file locking, prevents other processes from modifying files
 
 ---
 

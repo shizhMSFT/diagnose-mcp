@@ -9,7 +9,7 @@ MCP Protocol Proxy Server - A transparent proxy for debugging and monitoring Mod
 - **Transparent Pass-Through**: Messages are forwarded without modification
 - **Detailed Logging**: Track requests, responses, notifications, and progress updates
 - **Log File Support**: Write logs to files with dynamic pattern support (`{timestamp}`, `{session}`, `{pid}`)
-- **File Monitoring**: Watch files for changes and log modifications
+- **File Monitoring**: Watch files for changes and display new content (tail-like behavior, non-blocking)
 - **Text Format** (default): Human-readable timestamps, log levels, message types
 - **JSON Format** (`--json`): Structured output for parsing by other tools
 - **Verbose Mode** (`--verbose`): Include full message payloads (readable text or base64 for binary data)
