@@ -104,17 +104,20 @@ az storage container create \
     --account-key "$ACCOUNT_KEY" \
     --output none 2>/dev/null || true
 
-# Create append blob
+# Create append blob with initial header
 echo "📝 Creating append blob '$BLOB_NAME'..."
+TEMP_FILE=$(mktemp)
+# Write initial header to make blob non-empty
+printf "# diagnose-mcp log file\n# Created: %s\n\n" "$(date '+%Y-%m-%d %H:%M:%S')" > "$TEMP_FILE"
 az storage blob upload \
     --account-name "$STORAGE_ACCOUNT" \
     --account-key "$ACCOUNT_KEY" \
     --container-name "$CONTAINER_NAME" \
     --name "$BLOB_NAME" \
-    --type AppendBlob \
-    --data "" \
-    --overwrite \
-    --output none
+    --type append \
+    --file "$TEMP_FILE" \
+    --output none 2>/dev/null || echo "  Blob might already exist, continuing..."
+rm -f "$TEMP_FILE"
 
 # Generate SAS token
 echo "🔑 Generating SAS token (expires in $SAS_EXPIRY_DAYS days)..."

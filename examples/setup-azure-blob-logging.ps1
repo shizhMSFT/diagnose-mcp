@@ -89,17 +89,29 @@ az storage container create `
     --account-key $AccountKey `
     --output none 2>$null
 
-# Create append blob
+# Create append blob with initial header
 Write-Host "📝 Creating append blob '$BlobName'..." -ForegroundColor Yellow
-az storage blob upload `
-    --account-name $StorageAccount `
-    --account-key $AccountKey `
-    --container-name $ContainerName `
-    --name $BlobName `
-    --type AppendBlob `
-    --data "" `
-    --overwrite `
-    --output none
+$tempFile = [System.IO.Path]::GetTempFileName()
+try {
+    # Write initial header to make blob non-empty
+    $header = "# diagnose-mcp log file`n# Created: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')` n`n"
+    [System.IO.File]::WriteAllText($tempFile, $header)
+    
+    az storage blob upload `
+        --account-name $StorageAccount `
+        --account-key $AccountKey `
+        --container-name $ContainerName `
+        --name $BlobName `
+        --type append `
+        --file $tempFile `
+        --output none 2>&1 | Out-Null
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Blob might already exist, continuing..." -ForegroundColor Yellow
+    }
+} finally {
+    Remove-Item $tempFile -ErrorAction SilentlyContinue
+}
 
 # Generate SAS token
 Write-Host "🔑 Generating SAS token (expires in $SasExpiryDays days)..." -ForegroundColor Yellow
@@ -115,8 +127,8 @@ $SasToken = az storage blob generate-sas `
     --https-only `
     --output tsv
 
-# Build full URL
-$BlobUrl = "https://$StorageAccount.blob.core.windows.net/$ContainerName/$BlobName?$SasToken"
+# Build full URL - use string concatenation to avoid interpolation issues
+$BlobUrl = "https://$StorageAccount.blob.core.windows.net/$ContainerName/$BlobName" + "?" + $SasToken
 
 Write-Host ""
 Write-Host "✅ Setup complete!" -ForegroundColor Green
