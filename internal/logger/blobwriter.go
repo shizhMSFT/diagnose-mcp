@@ -157,13 +157,6 @@ func (bw *BlobWriter) flushLocked() error {
 	return nil
 }
 
-// Sync flushes any buffered data immediately
-func (bw *BlobWriter) Sync() error {
-	bw.mu.Lock()
-	defer bw.mu.Unlock()
-	return bw.flushLocked()
-}
-
 // Close flushes any remaining data and stops the background goroutine
 func (bw *BlobWriter) Close() error {
 	close(bw.stopCh)
