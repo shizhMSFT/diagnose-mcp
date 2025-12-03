@@ -250,7 +250,12 @@ func (p *Proxy) handleMessage(msg *MCPMessage) error {
 	// Check if this is unparseable data (Message == nil)
 	if msg.Message == nil {
 		// Log as forwarded non-MCP content
-		entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeForward, string(msg.RawBytes))
+		// Strip trailing newline for logging (it's preserved in RawBytes for forwarding)
+		content := string(msg.RawBytes)
+		if len(content) > 0 && content[len(content)-1] == '\n' {
+			content = content[:len(content)-1]
+		}
+		entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeForward, content)
 		return p.logEntry(entry)
 	}
 
