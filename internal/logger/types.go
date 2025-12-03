@@ -33,6 +33,8 @@ const (
 	LogEntryTypeProgress LogEntryType = "progress"
 	// LogEntryTypeFile for file change events
 	LogEntryTypeFile LogEntryType = "file"
+	// LogEntryTypeForward for forwarded non-MCP content
+	LogEntryTypeForward LogEntryType = "forward"
 	// LogEntryTypeError for error events
 	LogEntryTypeError LogEntryType = "error"
 )

@@ -200,10 +200,8 @@ func (p *Proxy) forwardServerToClient(ctx context.Context) error {
 				return err
 			}
 			if err != nil {
-				// Parse error but we have the raw data - log as info and forward it anyway
-				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeNotification, "Non-JSON server output (forwarding raw data)")
-				entry.WithContext("details", err.Error())
-				p.logEntry(entry)
+				// Parse error but we have the raw data - just log and forward
+				// Don't call message handler since it will log again
 			}
 
 			// Forward raw data to client stdout (even if parse failed)
@@ -222,9 +220,8 @@ func (p *Proxy) forwardServerToClient(ctx context.Context) error {
 func (p *Proxy) handleMessage(msg *MCPMessage) error {
 	// Check if this is unparseable data (Message == nil)
 	if msg.Message == nil {
-		// Log as server informational output (not JSON-RPC)
-		entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeNotification, "Server output")
-		entry.WithContext("output", string(msg.RawBytes))
+		// Log as forwarded non-MCP content
+		entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeForward, string(msg.RawBytes))
 		return p.logEntry(entry)
 	}
 
