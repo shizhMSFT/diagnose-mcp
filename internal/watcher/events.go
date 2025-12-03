@@ -3,6 +3,7 @@ package watcher
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -82,6 +83,23 @@ func (w *FileWatcher) Watch(path string, eventChan chan<- FileEvent) error {
 
 	// Watch the parent directory (fsnotify watches directories)
 	dir := filepath.Dir(absPath)
+	// Check if directory exists before attempting to watch
+	if _, err := os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			// Directory doesn't exist yet, create placeholder state and wait for it to be created
+			state := &FileState{
+				Path:         absPath,
+				Size:         0,
+				Offset:       0,
+				LastModified: 0,
+			}
+			w.states[absPath] = state
+			w.eventChans[absPath] = eventChan
+			return nil
+		}
+		return fmt.Errorf("failed to check directory: %w", err)
+	}
+
 	if err := w.watcher.Add(dir); err != nil {
 		return fmt.Errorf("failed to watch directory: %w", err)
 	}
