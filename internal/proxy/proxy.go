@@ -409,10 +409,8 @@ func (p *Proxy) startFileWatching(ctx context.Context) error {
 			p.logError(fmt.Sprintf("Failed to watch file: %s", filePath), err)
 			continue
 		}
-		entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, filePath)
-		entry.Context = map[string]interface{}{
-			"event": "watching",
-		}
+		message := "watching " + filePath
+		entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, message)
 		p.logEntry(entry)
 	}
 
@@ -429,19 +427,16 @@ func (p *Proxy) handleFileEvents(ctx context.Context, eventChan <-chan watcher.F
 		case <-ctx.Done():
 			return
 		case event := <-eventChan:
-			// For created/deleted events, just log path
 			if event.Type == watcher.EventTypeCreated || event.Type == watcher.EventTypeDeleted {
-				message := event.Path
+				// Single line: "created <path>" or "deleted <path>"
+				message := string(event.Type) + " " + event.Path
 				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, message)
-				entry.Context = map[string]interface{}{
-					"event": string(event.Type),
-				}
 				p.logEntry(entry)
 			} else if event.Type == watcher.EventTypeModified && event.Content != "" {
-				// Only log modified events when there's new content
-				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, event.Path)
+				// Modified with content: "modified <path>" with content in context
+				message := "modified " + event.Path
+				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, message)
 				entry.Context = map[string]interface{}{
-					"event":   "modified",
 					"content": event.Content,
 				}
 				p.logEntry(entry)
