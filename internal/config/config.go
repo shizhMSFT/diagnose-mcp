@@ -86,7 +86,7 @@ func ParseFlags(args []string) (*Config, error) {
 	fs.StringVar(&cfg.RemoteURL, "r", "", "URL of remote MCP server (shorthand)")
 	fs.Var(&watchFiles, "watch", "File path to monitor (can be repeated)")
 	fs.Var(&watchFiles, "w", "File path to monitor (shorthand)")
-	fs.StringVar(&cfg.LogFile, "log-file", "", "Path to write logs (supports {session}, {pid} patterns, default: stderr)")
+	fs.StringVar(&cfg.LogFile, "log-file", "", "Path to write logs (supports {session}, {pid}, {timestamp} patterns, default: stderr)")
 	fs.StringVar(&cfg.LogFile, "l", "", "Path to write logs (shorthand)")
 	fs.BoolVar(&cfg.Verbose, "verbose", false, "Enable detailed logging with full message payloads")
 	fs.BoolVar(&cfg.Verbose, "v", false, "Enable detailed logging (shorthand)")
@@ -190,7 +190,7 @@ USAGE:
 OPTIONS:
   --remote, -r <url>    URL of remote MCP server (http://, https://, ws://, wss://)
   --watch, -w <path>    Monitor file for changes (can be repeated)
-  --log-file, -l <path> Write logs to file (supports {session}, {pid} patterns)
+  --log-file, -l <path> Write logs to file (supports {session}, {pid}, {timestamp} patterns)
   --verbose, -v         Enable detailed logging with full message payloads
   --json, -j            Output logs in JSON format
   --help, -h            Display this help message
@@ -202,7 +202,7 @@ EXAMPLES:
   diagnose-mcp --remote ws://localhost:8080/mcp
   diagnose-mcp --watch /tmp/server.log ./my-server
   diagnose-mcp --json ./my-server | jq .
-  diagnose-mcp --log-file "logs/{session}.log" ./my-server
+  diagnose-mcp --log-file "logs/{timestamp}-{session}.log" ./my-server
 
 For more information, see the documentation.
 `

@@ -8,7 +8,7 @@ MCP Protocol Proxy Server - A transparent proxy for debugging and monitoring Mod
 - **Remote WebSocket Support**: Connect to remote MCP servers via HTTP/WebSocket
 - **Transparent Pass-Through**: Messages are forwarded without modification
 - **Detailed Logging**: Track requests, responses, notifications, and progress updates
-- **Log File Support**: Write logs to files with dynamic pattern support (`{session}`, `{pid}`)
+- **Log File Support**: Write logs to files with dynamic pattern support (`{timestamp}`, `{session}`, `{pid}`)
 - **File Monitoring**: Watch files for changes and log modifications
 - **Text Format** (default): Human-readable timestamps, log levels, message types
 - **JSON Format** (`--json`): Structured output for parsing by other tools
@@ -53,8 +53,8 @@ diagnose-mcp --verbose ./my-mcp-server
 # JSON output format
 diagnose-mcp --json ./my-mcp-server | jq .
 
-# Write logs to file with session ID
-diagnose-mcp --log-file "logs/{session}.log" ./my-mcp-server
+# Write logs to file with timestamp and session ID (ordered chronologically)
+diagnose-mcp --log-file "logs/{timestamp}-{session}.log" ./my-mcp-server
 
 # Watch files for changes
 diagnose-mcp --watch /tmp/server.log --watch /tmp/config.json ./my-mcp-server

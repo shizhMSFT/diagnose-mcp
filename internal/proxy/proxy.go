@@ -46,6 +46,8 @@ func (p *Proxy) initLogger(sessionID string) {
 			logPath = replacePattern(logPath, "{session}", sessionID)
 		}
 		logPath = replacePattern(logPath, "{pid}", fmt.Sprintf("%d", os.Getpid()))
+		// Add timestamp pattern for ordering: {timestamp} -> 20250103-104338
+		logPath = replacePattern(logPath, "{timestamp}", time.Now().Format("20060102-150405"))
 
 		// Open with O_SYNC for unbuffered writes
 		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0644)
