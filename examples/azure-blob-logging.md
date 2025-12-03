@@ -1,10 +1,17 @@
 # Azure Blob Storage Logging for Dev/Test
 
-This example demonstrates how to stream `diagnose-mcp` logs to Azure Blob Storage instead of local files. This is useful when:
+This example demonstrates how to upload `diagnose-mcp` logs to Azure Blob Storage instead of local files. Logs are written to a temporary local file and periodically uploaded to Azure as a block blob. This is useful when:
 
 - The target environment cannot export log files
 - You need centralized log collection for multiple test instances
 - You want persistent logs without local disk access
+
+## How It Works
+
+1. **Local Logging**: Logs are written to a temporary file on the local system
+2. **Periodic Upload**: Every 10 seconds, the entire log file is uploaded to Azure Blob Storage as a block blob (overwrites previous version)
+3. **Final Upload**: On graceful shutdown, a final upload ensures all logs are captured
+4. **Simple & Reliable**: Uses block blob PUT operations (simpler than append blob streaming)
 
 ## Prerequisites
 
@@ -32,7 +39,8 @@ az storage account create \
 
 ### 2. Run Setup Script
 
-The script will create a container, append blob, and SAS token in your existing storage account:
+The script will create a container and generate a SAS token in your existing storage account.
+The blob will be auto-created when diagnose-mcp first uploads logs.
 
 **Bash:**
 ```bash
@@ -61,9 +69,9 @@ The script will create a container, append blob, and SAS token in your existing 
 The script will:
 - ✅ Verify your storage account exists
 - ✅ Create a `diagnose-mcp-logs` container (if needed)
-- ✅ Create an append blob (e.g., `dev-test-20251203.log`)
 - ✅ Generate a SAS token with write permissions (1 day expiry)
 - ✅ Output the full blob URL ready to use
+- ℹ️  The blob itself will be created when diagnose-mcp first uploads logs
 
 ### 3. Use the Generated URL
 
@@ -94,19 +102,23 @@ diagnose-mcp --log-blob-url "$LOG_BLOB_URL" ./my-mcp-server
 
 ## Configuration Tips
 
-### Buffer Settings
+### Upload Behavior
 
-The blob writer batches log writes to reduce API calls:
-- **Default flush size**: 64 KB
-- **Default flush period**: 5 seconds
-- Logs are flushed when buffer is full OR every 5 seconds
+The blob uploader periodically uploads logs:
+- **Default upload interval**: 10 seconds
+- **Upload method**: Entire file uploaded, overwrites existing blob
+- **Final upload**: Performed on graceful shutdown (Ctrl+C)
+- **Temp file**: Created in system temp directory with session ID
 
-For **low-latency dev mode** (immediate writes), you can modify `internal/logger/blobwriter.go`:
+### Temp File Location
 
-```go
-config := &BlobWriterConfig{
-    FlushOnWrite: true,  // Flush immediately after each log line
-}
+Logs are written to:
+```
+# Linux/Mac
+/tmp/diagnose-mcp-<session-id>.log
+
+# Windows
+%TEMP%\diagnose-mcp-<session-id>.log
 ```
 
 ### Multiple Test Instances
@@ -144,7 +156,7 @@ az storage blob download \
 
 ## Security Best Practices
 
-1. **SAS Token Permissions**: Grant minimal permissions (`acw` = add, create, write)
+1. **SAS Token Permissions**: Grant minimal permissions (`w` = write only)
 2. **Expiry Time**: Use short-lived tokens (hours/days for dev, not months)
 3. **HTTPS Only**: Always use `--https-only` when generating SAS
 4. **Rotation**: Regenerate tokens regularly, especially before they expire
@@ -173,29 +185,37 @@ az storage container delete \
 ### "Failed to create blob client"
 - Check that the blob URL is properly URL-encoded
 - Verify the SAS token hasn't expired
-- Ensure the blob exists and is of type `AppendBlob`
+- Ensure the SAS token has write permissions
 
-### "Failed to append to blob"
+### "Failed to upload to blob"
 - SAS token may lack write (`w`) permissions
-- Blob might not exist or is not an append blob
 - Storage account may have network restrictions
+- Check network connectivity to `*.blob.core.windows.net`
 
-### No logs appearing
-- Check blob writer is flushing (default: every 5 seconds or 64KB)
-- Verify network connectivity to `*.blob.core.windows.net`
-- Check stderr for warnings about blob writer initialization
+### No logs appearing in blob
+- Logs upload every 10 seconds - wait for next upload cycle
+- Verify network connectivity to Azure
+- Check stderr for warnings about blob uploader initialization
+- Trigger graceful shutdown (Ctrl+C) to force final upload
+
+### Temp file location
+- Check system temp directory for `diagnose-mcp-<session-id>.log`
+- Linux/Mac: `/tmp/`
+- Windows: `%TEMP%\` (usually `C:\Users\<username>\AppData\Local\Temp\`)
 
 ## Cost Considerations
 
 Azure Blob Storage costs for dev/test are minimal:
 - **Storage**: ~$0.018/GB/month for LRS (locally redundant)
-- **Operations**: ~$0.065 per 10,000 write operations
+- **Operations**: ~$0.005 per 10,000 write operations (block blob)
 - **Bandwidth**: Free egress for same-region, small charges for cross-region
 
-**Example**: Streaming 100 MB of logs/day with frequent writes:
+**Example**: Uploading 100 MB of logs/day with 10-second intervals:
 - Storage: ~$0.002/month
-- Operations: ~$0.01/month
-- **Total**: < $0.02/month for moderate dev/test usage
+- Operations: ~$0.001/month (8,640 uploads/day)
+- **Total**: < $0.01/month for moderate dev/test usage
+
+Note: Block blob uploads are cheaper than append blob operations.
 
 ## Alternative: Block Blob (Not Recommended for Logs)
 

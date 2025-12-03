@@ -15,17 +15,17 @@ import (
 
 // Proxy coordinates the MCP proxy session with logging
 type Proxy struct {
-	config      *config.Config
-	localProxy  *LocalProxy
-	remoteProxy *RemoteProxy
-	fileWatcher *watcher.FileWatcher
-	logger      *logger.Logger
-	jsonLogger  *logger.JSONLogger
-	logWriter   io.Writer
-	blobWriter  io.Closer // Track blob writer for cleanup
-	fileWriter  *os.File  // Track file writer for cleanup
-	clientIn    io.Reader
-	clientOut   io.Writer
+	config       *config.Config
+	localProxy   *LocalProxy
+	remoteProxy  *RemoteProxy
+	fileWatcher  *watcher.FileWatcher
+	logger       *logger.Logger
+	jsonLogger   *logger.JSONLogger
+	logWriter    io.Writer
+	blobUploader io.Closer // Track blob uploader for cleanup
+	fileWriter   *os.File  // Track file writer for cleanup
+	clientIn     io.Reader
+	clientOut    io.Writer
 }
 
 // NewProxy creates a new proxy instance
@@ -39,21 +39,10 @@ func NewProxy(cfg *config.Config) *Proxy {
 
 // initLogger initializes the logger with session ID pattern expansion
 func (p *Proxy) initLogger(sessionID string) {
-	// Determine log writer (stderr by default, or file/blob if specified)
-	var writers []io.Writer
+	var logWriter io.Writer = os.Stderr // Default to stderr
+	var logFilePath string
 
-	// Add blob writer if specified
-	if p.config.LogBlobURL != "" {
-		blobWriter, err := logger.NewBlobWriter(p.config.LogBlobURL, nil)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to create blob writer for %s: %v\n", p.config.LogBlobURL, err)
-		} else {
-			writers = append(writers, blobWriter)
-			p.blobWriter = blobWriter // Store for cleanup
-		}
-	}
-
-	// Add file writer if specified
+	// Determine the log file path (either from --log-file or temp file for blob)
 	if p.config.LogFile != "" {
 		// Expand patterns in log file path
 		logPath := p.config.LogFile
@@ -63,28 +52,32 @@ func (p *Proxy) initLogger(sessionID string) {
 		logPath = replacePattern(logPath, "{pid}", fmt.Sprintf("%d", os.Getpid()))
 		// Add timestamp pattern for ordering: {timestamp} -> 20250103-104338
 		logPath = replacePattern(logPath, "{timestamp}", time.Now().Format("20060102-150405"))
+		logFilePath = logPath
+	} else if p.config.LogBlobURL != "" {
+		// Create temp file path for blob upload only if --log-file not specified
+		logFilePath = getTempLogPath(sessionID)
+	}
 
-		// Open with O_SYNC for unbuffered writes
-		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0644)
+	// Open log file if needed
+	if logFilePath != "" {
+		file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0644)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v\n", logPath, err)
+			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v\n", logFilePath, err)
 		} else {
-			writers = append(writers, file)
+			logWriter = file
 			p.fileWriter = file // Store for cleanup
+
+			// Start blob uploader if blob URL specified
+			if p.config.LogBlobURL != "" {
+				uploader, err := logger.NewBlobUploader(logFilePath, p.config.LogBlobURL, nil)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: Failed to create blob uploader for %s: %v\n", p.config.LogBlobURL, err)
+				} else {
+					uploader.Start()
+					p.blobUploader = uploader // Store for cleanup
+				}
+			}
 		}
-	}
-
-	// Use stderr if no writers were added
-	if len(writers) == 0 {
-		writers = append(writers, os.Stderr)
-	}
-
-	// Combine all writers
-	var logWriter io.Writer
-	if len(writers) == 1 {
-		logWriter = writers[0]
-	} else {
-		logWriter = io.MultiWriter(writers...)
 	}
 
 	p.logWriter = logWriter
@@ -94,6 +87,14 @@ func (p *Proxy) initLogger(sessionID string) {
 	} else {
 		p.logger = logger.NewLogger(logWriter, p.config.Verbose)
 	}
+}
+
+// getTempLogPath generates a temporary file path for blob upload logs
+func getTempLogPath(sessionID string) string {
+	if sessionID == "" {
+		sessionID = fmt.Sprintf("%d", time.Now().Unix())
+	}
+	return fmt.Sprintf("%s%cdiagnose-mcp-%s.log", os.TempDir(), os.PathSeparator, sessionID)
 }
 
 // replacePattern replaces pattern in string
@@ -122,16 +123,16 @@ func (p *Proxy) Run(ctx context.Context) error {
 	return p.runLocalProxy(ctx)
 }
 
-// cleanup closes any resources (like blob writer)
+// cleanup closes any resources (like blob uploader)
 func (p *Proxy) cleanup() {
 	if p.fileWriter != nil {
 		if err := p.fileWriter.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to close file writer: %v\n", err)
 		}
 	}
-	if p.blobWriter != nil {
-		if err := p.blobWriter.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to close blob writer: %v\n", err)
+	if p.blobUploader != nil {
+		if err := p.blobUploader.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to close blob uploader: %v\n", err)
 		}
 	}
 }
