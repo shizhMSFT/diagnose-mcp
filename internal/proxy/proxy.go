@@ -22,6 +22,7 @@ type Proxy struct {
 	logger      *logger.Logger
 	jsonLogger  *logger.JSONLogger
 	logWriter   io.Writer
+	blobWriter  io.Closer // Track blob writer for cleanup
 	clientIn    io.Reader
 	clientOut   io.Writer
 }
@@ -37,9 +38,20 @@ func NewProxy(cfg *config.Config) *Proxy {
 
 // initLogger initializes the logger with session ID pattern expansion
 func (p *Proxy) initLogger(sessionID string) {
-	// Determine log writer (stderr by default, or file if --log-file specified)
+	// Determine log writer (stderr by default, or file/blob if specified)
 	var logWriter io.Writer = os.Stderr
-	if p.config.LogFile != "" {
+
+	// Priority: blob URL > file > stderr
+	if p.config.LogBlobURL != "" {
+		// Use Azure Blob Storage for logs
+		blobWriter, err := logger.NewBlobWriter(p.config.LogBlobURL, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to create blob writer for %s: %v. Using stderr.\n", p.config.LogBlobURL, err)
+		} else {
+			logWriter = blobWriter
+			p.blobWriter = blobWriter // Store for cleanup
+		}
+	} else if p.config.LogFile != "" {
 		// Expand patterns in log file path
 		logPath := p.config.LogFile
 		if sessionID != "" {
@@ -81,6 +93,9 @@ func replacePattern(s, pattern, value string) string {
 
 // Run starts the proxy session
 func (p *Proxy) Run(ctx context.Context) error {
+	// Ensure cleanup of blob writer if used
+	defer p.cleanup()
+
 	// Check if remote mode
 	if p.config.ConnectionType == config.ConnectionTypeRemote {
 		return p.runRemoteProxy(ctx)
@@ -88,6 +103,15 @@ func (p *Proxy) Run(ctx context.Context) error {
 
 	// Default to local mode
 	return p.runLocalProxy(ctx)
+}
+
+// cleanup closes any resources (like blob writer)
+func (p *Proxy) cleanup() {
+	if p.blobWriter != nil {
+		if err := p.blobWriter.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to close blob writer: %v\n", err)
+		}
+	}
 }
 
 // runRemoteProxy runs the remote proxy mode
