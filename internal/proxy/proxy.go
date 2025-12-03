@@ -195,11 +195,16 @@ func (p *Proxy) forwardServerToClient(ctx context.Context) error {
 			return ctx.Err()
 		default:
 			msg, err := p.localProxy.ReadServerMessage()
-			if err != nil {
+			if err != nil && msg == nil {
+				// Fatal error (EOF or read error) - terminate
 				return err
 			}
+			if err != nil {
+				// Parse error but we have the raw data - log and forward it anyway
+				p.logError("Error parsing server message (forwarding raw data)", err)
+			}
 
-			// Forward to client stdout
+			// Forward raw data to client stdout (even if parse failed)
 			if _, err := p.clientOut.Write(msg.RawBytes); err != nil {
 				p.logError("Failed to write to client stdout", err)
 				return err
@@ -213,6 +218,14 @@ func (p *Proxy) forwardServerToClient(ctx context.Context) error {
 
 // handleMessage logs intercepted MCP messages
 func (p *Proxy) handleMessage(msg *MCPMessage) error {
+	// Check if this is unparseable data (Message == nil)
+	if msg.Message == nil {
+		// Log as unparseable server output
+		entry := logger.NewLogEntry(logger.LogLevelError, logger.LogEntryTypeNotification, "Unparseable server output")
+		entry.WithContext("output", string(msg.RawBytes))
+		return p.logEntry(entry)
+	}
+
 	var entryType logger.LogEntryType
 	var direction string
 

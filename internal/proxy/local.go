@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/shizhMSFT/diagnose-mcp/pkg/mcp"
 )
@@ -251,7 +252,31 @@ func (p *LocalProxy) ReadServerMessage() (*MCPMessage, error) {
 	msg, err := mcp.ParseMessage(data)
 	if err != nil {
 		p.session.IncrementErrorCount()
-		return nil, fmt.Errorf("failed to parse server message: %w", err)
+		// Include the actual data in the error message to help diagnose issues
+		dataPreview := string(data)
+		if len(dataPreview) > 100 {
+			dataPreview = dataPreview[:100] + "..."
+		}
+
+		// Still create an MCPMessage with the raw data so it can be logged and forwarded
+		// Message will be nil to indicate parse failure
+		p.sequenceNumber++
+		mcpMsg := &MCPMessage{
+			SessionID:      p.sessionID,
+			Direction:      MessageDirectionInbound,
+			Timestamp:      time.Now(),
+			Message:        nil, // nil indicates parse failure
+			RawBytes:       data,
+			SequenceNumber: p.sequenceNumber,
+		}
+
+		// Call message handler to log the unparseable data
+		if p.messageHandler != nil {
+			p.messageHandler(mcpMsg)
+		}
+
+		// Return the message with error so caller can decide what to do
+		return mcpMsg, fmt.Errorf("failed to parse server message: %w (received: %q)", err, dataPreview)
 	}
 
 	// Create MCP message with metadata
