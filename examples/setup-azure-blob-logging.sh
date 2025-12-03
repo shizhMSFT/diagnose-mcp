@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # setup-azure-blob-logging.sh
-# Helper script to create an Azure append blob for diagnose-mcp logging
+# Helper script to generate SAS token for Azure blob logging with diagnose-mcp
+# The blob will be auto-created as a block blob when diagnose-mcp first uploads logs
 # NOTE: Requires an existing Azure Storage Account
 
 set -e
@@ -104,20 +105,7 @@ az storage container create \
     --account-key "$ACCOUNT_KEY" \
     --output none 2>/dev/null || true
 
-# Create append blob with initial header
-echo "📝 Creating append blob '$BLOB_NAME'..."
-TEMP_FILE=$(mktemp)
-# Write initial header to make blob non-empty
-printf "# diagnose-mcp log file\n# Created: %s\n\n" "$(date '+%Y-%m-%d %H:%M:%S')" > "$TEMP_FILE"
-az storage blob upload \
-    --account-name "$STORAGE_ACCOUNT" \
-    --account-key "$ACCOUNT_KEY" \
-    --container-name "$CONTAINER_NAME" \
-    --name "$BLOB_NAME" \
-    --type append \
-    --file "$TEMP_FILE" \
-    --output none 2>/dev/null || echo "  Blob might already exist, continuing..."
-rm -f "$TEMP_FILE"
+echo "ℹ️  Note: Blob will be auto-created when diagnose-mcp first uploads logs"
 
 # Generate SAS token
 echo "🔑 Generating SAS token (expires in $SAS_EXPIRY_DAYS days)..."
@@ -128,7 +116,7 @@ SAS_TOKEN=$(az storage blob generate-sas \
     --account-key "$ACCOUNT_KEY" \
     --container-name "$CONTAINER_NAME" \
     --name "$BLOB_NAME" \
-    --permissions acw \
+    --permissions w \
     --expiry "$END_DATE" \
     --https-only \
     --output tsv)
@@ -145,6 +133,11 @@ echo ""
 echo "💡 Usage:"
 echo "  export LOG_BLOB_URL='$BLOB_URL'"
 echo "  diagnose-mcp --log-blob-url \"\$LOG_BLOB_URL\" ./my-mcp-server"
+echo ""
+echo "ℹ️  How it works:"
+echo "  - Logs are written to a local temp file"
+echo "  - File is uploaded to Azure blob every 10 seconds (overwrites)"
+echo "  - Final upload happens on graceful shutdown"
 echo ""
 echo "📥 View logs:"
 echo "  az storage blob download --account-name $STORAGE_ACCOUNT --container-name $CONTAINER_NAME --name $BLOB_NAME --file -"

@@ -1,14 +1,16 @@
 # setup-azure-blob-logging.ps1
-# Helper script to create an Azure append blob for diagnose-mcp logging
+# Helper script to generate SAS token for Azure blob logging with diagnose-mcp
+# The blob will be auto-created as a block blob when diagnose-mcp first uploads logs
 # NOTE: Requires an existing Azure Storage Account
 
 <#
 .SYNOPSIS
-    Creates an Azure append blob for diagnose-mcp logging.
+    Generates a SAS token for diagnose-mcp blob logging.
 
 .DESCRIPTION
-    This script creates a container and append blob in an existing Azure Storage Account,
-    then generates a SAS token for diagnose-mcp to write logs.
+    This script creates a container in an existing Azure Storage Account,
+    then generates a SAS token for diagnose-mcp to upload logs.
+    The blob will be auto-created as a block blob on first upload.
 
 .PARAMETER StorageAccount
     The name of the existing Azure Storage Account (required).
@@ -89,29 +91,7 @@ az storage container create `
     --account-key $AccountKey `
     --output none 2>$null
 
-# Create append blob with initial header
-Write-Host "📝 Creating append blob '$BlobName'..." -ForegroundColor Yellow
-$tempFile = [System.IO.Path]::GetTempFileName()
-try {
-    # Write initial header to make blob non-empty
-    $header = "# diagnose-mcp log file`n# Created: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')` n`n"
-    [System.IO.File]::WriteAllText($tempFile, $header)
-    
-    az storage blob upload `
-        --account-name $StorageAccount `
-        --account-key $AccountKey `
-        --container-name $ContainerName `
-        --name $BlobName `
-        --type append `
-        --file $tempFile `
-        --output none 2>&1 | Out-Null
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  Blob might already exist, continuing..." -ForegroundColor Yellow
-    }
-} finally {
-    Remove-Item $tempFile -ErrorAction SilentlyContinue
-}
+Write-Host "ℹ️  Note: Blob will be auto-created when diagnose-mcp first uploads logs" -ForegroundColor Cyan
 
 # Generate SAS token
 Write-Host "🔑 Generating SAS token (expires in $SasExpiryDays days)..." -ForegroundColor Yellow
@@ -122,7 +102,7 @@ $SasToken = az storage blob generate-sas `
     --account-key $AccountKey `
     --container-name $ContainerName `
     --name $BlobName `
-    --permissions acw `
+    --permissions w `
     --expiry $EndDate `
     --https-only `
     --output tsv
@@ -139,6 +119,11 @@ Write-Host ""
 Write-Host "💡 Usage:" -ForegroundColor Cyan
 Write-Host "  `$env:LOG_BLOB_URL = '$BlobUrl'" -ForegroundColor White
 Write-Host "  diagnose-mcp --log-blob-url `"`$env:LOG_BLOB_URL`" ./my-mcp-server" -ForegroundColor White
+Write-Host ""
+Write-Host "ℹ️  How it works:" -ForegroundColor Cyan
+Write-Host "  - Logs are written to a local temp file" -ForegroundColor White
+Write-Host "  - File is uploaded to Azure blob every 10 seconds (overwrites)" -ForegroundColor White
+Write-Host "  - Final upload happens on graceful shutdown" -ForegroundColor White
 Write-Host ""
 Write-Host "📥 View logs:" -ForegroundColor Cyan
 Write-Host "  az storage blob download --account-name $StorageAccount --container-name $ContainerName --name $BlobName --file -" -ForegroundColor White
