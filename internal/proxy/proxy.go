@@ -27,8 +27,16 @@ type Proxy struct {
 
 // NewProxy creates a new proxy instance
 func NewProxy(cfg *config.Config) *Proxy {
-	// Determine log writer (stderr for text/JSON logs, stdout is for MCP messages)
-	logWriter := os.Stderr
+	// Determine log writer (stderr by default, or file if --log-file specified)
+	var logWriter io.Writer = os.Stderr
+	if cfg.LogFile != "" {
+		file, err := os.OpenFile(cfg.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v. Using stderr.\n", cfg.LogFile, err)
+		} else {
+			logWriter = file
+		}
+	}
 
 	var textLogger *logger.Logger
 	var jsonLogger *logger.JSONLogger

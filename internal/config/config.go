@@ -45,6 +45,9 @@ type Config struct {
 	// WatchedFiles are file paths to monitor for changes
 	WatchedFiles []string
 
+	// LogFile is the path to write logs to (default: stderr)
+	LogFile string
+
 	// Verbose enables detailed logging (full message payloads)
 	Verbose bool
 
@@ -83,6 +86,8 @@ func ParseFlags(args []string) (*Config, error) {
 	fs.StringVar(&cfg.RemoteURL, "r", "", "URL of remote MCP server (shorthand)")
 	fs.Var(&watchFiles, "watch", "File path to monitor (can be repeated)")
 	fs.Var(&watchFiles, "w", "File path to monitor (shorthand)")
+	fs.StringVar(&cfg.LogFile, "log-file", "", "Path to write logs to (default: stderr)")
+	fs.StringVar(&cfg.LogFile, "l", "", "Path to write logs to (shorthand)")
 	fs.BoolVar(&cfg.Verbose, "verbose", false, "Enable detailed logging with full message payloads")
 	fs.BoolVar(&cfg.Verbose, "v", false, "Enable detailed logging (shorthand)")
 
