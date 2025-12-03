@@ -35,11 +35,10 @@ func (fs *FileState) readNewContent() (string, error) {
 		return "", err
 	}
 
-	// Read new content (limit to 100KB to avoid huge logs)
-	maxRead := int64(100 * 1024)
+	// Read all new content
 	toRead := fs.Size - fs.Offset
-	if toRead > maxRead {
-		toRead = maxRead
+	if toRead == 0 {
+		return "", nil
 	}
 
 	buf := make([]byte, toRead)
