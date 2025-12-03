@@ -171,10 +171,13 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) {
 	case event.Op&fsnotify.Write == fsnotify.Write:
 		fileEvent.Type = EventTypeModified
 		// Update state and get new content
-		if content, err := state.Update(); err == nil {
-			fileEvent.Content = content
-			fileEvent.Size = state.Size
+		content, err := state.Update()
+		if err != nil {
+			// Log error but continue with event
+			_ = err // TODO: consider logging this error
 		}
+		fileEvent.Content = content
+		fileEvent.Size = state.Size
 
 	case event.Op&fsnotify.Remove == fsnotify.Remove:
 		fileEvent.Type = EventTypeDeleted

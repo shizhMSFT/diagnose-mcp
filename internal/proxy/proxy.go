@@ -438,7 +438,7 @@ func (p *Proxy) handleFileEvents(ctx context.Context, eventChan <-chan watcher.F
 				}
 				p.logEntry(entry)
 			} else if event.Type == watcher.EventTypeModified && event.Content != "" {
-				// For modified events with content, show the content
+				// Only log modified events when there's new content
 				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, event.Path)
 				entry.Context = map[string]interface{}{
 					"event":   "modified",
