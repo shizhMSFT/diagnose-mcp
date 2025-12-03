@@ -1,0 +1,156 @@
+// Package logger provides structured logging for diagnose-mcp
+package logger
+
+import (
+	"encoding/base64"
+	"fmt"
+	"io"
+	"strings"
+	"time"
+	"unicode/utf8"
+)
+
+// Logger handles formatting and writing log entries
+type Logger struct {
+	writer  io.Writer
+	verbose bool
+}
+
+// NewLogger creates a new logger with the specified writer
+func NewLogger(writer io.Writer, verbose bool) *Logger {
+	return &Logger{
+		writer:  writer,
+		verbose: verbose,
+	}
+}
+
+// Log writes a log entry in text format
+func (l *Logger) Log(entry *LogEntry) error {
+	formatted := l.formatText(entry)
+	if _, err := l.writer.Write([]byte(formatted + "\n")); err != nil {
+		return err
+	}
+	// Sync if the writer supports it (for immediate flush)
+	if syncer, ok := l.writer.(interface{ Sync() error }); ok {
+		syncer.Sync()
+	}
+	return nil
+}
+
+// formatText formats a log entry as human-readable text
+func (l *Logger) formatText(entry *LogEntry) string {
+	var parts []string
+
+	// Timestamp: 2024-01-15T10:30:45.123Z
+	timestamp := entry.Timestamp.Format(time.RFC3339Nano)
+	parts = append(parts, timestamp)
+
+	// Level: [INFO], [ERROR], [DEBUG]
+	level := fmt.Sprintf("[%s]", entry.Level)
+	parts = append(parts, level)
+
+	// Type: [proxy], [request], [response], etc.
+	entryType := fmt.Sprintf("[%s]", entry.Type)
+	parts = append(parts, entryType)
+
+	// Direction + Method (for messages): -> initialize, <- initialized
+	if entry.Direction != "" {
+		var methodPart string
+		if entry.Method != "" {
+			methodPart = fmt.Sprintf("%s %s", entry.Direction, entry.Method)
+		} else {
+			methodPart = entry.Direction
+		}
+		parts = append(parts, methodPart)
+	}
+
+	// ID (for requests/responses): #123, #"abc"
+	if entry.ID != nil {
+		idPart := fmt.Sprintf("#%v", entry.ID)
+		parts = append(parts, idPart)
+	}
+
+	// Message
+	if entry.Message != "" {
+		parts = append(parts, entry.Message)
+	}
+
+	// Build first line
+	firstLine := strings.Join(parts, " ")
+
+	var lines []string
+	lines = append(lines, firstLine)
+
+	// Context (key=value pairs)
+	if len(entry.Context) > 0 {
+		var contextParts []string
+		for k, v := range entry.Context {
+			contextParts = append(contextParts, fmt.Sprintf("%s=%v", k, v))
+		}
+		contextLine := "  Context: " + strings.Join(contextParts, ", ")
+		lines = append(lines, contextLine)
+	}
+
+	// Error details
+	if entry.Error != nil {
+		errorLine := fmt.Sprintf("  Error: [%d] %s", entry.Error.Code, entry.Error.Message)
+		lines = append(lines, errorLine)
+		if entry.Error.Data != nil {
+			dataLine := fmt.Sprintf("  Error Data: %v", entry.Error.Data)
+			lines = append(lines, dataLine)
+		}
+	}
+
+	// Payload (verbose mode only)
+	if l.verbose && entry.Payload != nil {
+		payload := formatPayload(entry.Payload)
+		payloadLine := fmt.Sprintf("  Payload: %s", payload)
+
+		// Truncate if too long
+		const maxLength = 1000
+		if len(payloadLine) > maxLength {
+			payloadLine = payloadLine[:maxLength] + "... (truncated)"
+		}
+
+		lines = append(lines, payloadLine)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// SetVerbose updates the verbose setting
+func (l *Logger) SetVerbose(verbose bool) {
+	l.verbose = verbose
+}
+
+// formatPayload converts payload to readable format:
+// - If it's a byte array and printable UTF-8, return as string
+// - If it's a byte array but not printable, return as base64
+// - Otherwise, return as-is
+func formatPayload(payload interface{}) string {
+	// Check if it's a byte slice
+	if bytes, ok := payload.([]byte); ok {
+		// Check if it's valid UTF-8 and printable
+		if utf8.Valid(bytes) && isPrintable(bytes) {
+			return string(bytes)
+		}
+		// Not printable, return as base64
+		return base64.StdEncoding.EncodeToString(bytes)
+	}
+	// Not a byte slice, return as-is
+	return fmt.Sprintf("%v", payload)
+}
+
+// isPrintable checks if a byte slice contains only printable characters
+func isPrintable(data []byte) bool {
+	for _, b := range data {
+		// Allow printable ASCII, tabs, newlines, and carriage returns
+		if b < 32 && b != '\t' && b != '\n' && b != '\r' {
+			return false
+		}
+		if b == 127 { // DEL character
+			return false
+		}
+	}
+	return true
+}

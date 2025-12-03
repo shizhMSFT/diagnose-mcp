@@ -1,0 +1,36 @@
+# Binaries
+diagnose-mcp
+diagnose-mcp.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependencies
+vendor/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+specs/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
