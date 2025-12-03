@@ -149,8 +149,8 @@ func (bw *BlobWriter) flushLocked() error {
 	reader := &bytesReadSeekCloser{data: data}
 	_, err := bw.client.AppendBlock(ctx, reader, nil)
 	if err != nil {
-		// Put data back in buffer if upload failed (best effort)
-		bw.buffer.Write(data)
+		// Do NOT put data back in buffer - that causes duplicates
+		// Just return the error and let the caller handle it
 		return fmt.Errorf("failed to append to blob: %w", err)
 	}
 
