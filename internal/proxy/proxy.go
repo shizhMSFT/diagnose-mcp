@@ -409,9 +409,11 @@ func (p *Proxy) startFileWatching(ctx context.Context) error {
 			p.logError(fmt.Sprintf("Failed to watch file: %s", filePath), err)
 			continue
 		}
-		p.logFileEvent("watching", map[string]interface{}{
-			"path": filePath,
-		})
+		entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, filePath)
+		entry.Context = map[string]interface{}{
+			"event": "watching",
+		}
+		p.logEntry(entry)
 	}
 
 	// Start goroutine to handle file events
@@ -427,27 +429,23 @@ func (p *Proxy) handleFileEvents(ctx context.Context, eventChan <-chan watcher.F
 		case <-ctx.Done():
 			return
 		case event := <-eventChan:
-			details := map[string]interface{}{
-				"size": event.Size,
-				"path": event.Path,
+			// For created/deleted events, just log path
+			if event.Type == watcher.EventTypeCreated || event.Type == watcher.EventTypeDeleted {
+				message := event.Path
+				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, message)
+				entry.Context = map[string]interface{}{
+					"event": string(event.Type),
+				}
+				p.logEntry(entry)
+			} else if event.Type == watcher.EventTypeModified && event.Content != "" {
+				// For modified events with content, show the content
+				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, event.Path)
+				entry.Context = map[string]interface{}{
+					"event":   "modified",
+					"content": event.Content,
+				}
+				p.logEntry(entry)
 			}
-			// Include content if available (for modified events)
-			if event.Content != "" {
-				details["content"] = event.Content
-			}
-			p.logFileEvent(string(event.Type), details)
 		}
-	}
-}
-
-// logFileEvent logs a file system event
-func (p *Proxy) logFileEvent(eventType string, details map[string]interface{}) {
-	entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, eventType)
-	entry.Context = details
-
-	if p.jsonLogger != nil {
-		p.jsonLogger.Log(entry)
-	} else if p.logger != nil {
-		p.logger.Log(entry)
 	}
 }
