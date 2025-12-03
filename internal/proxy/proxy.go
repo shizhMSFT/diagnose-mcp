@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/shizhMSFT/diagnose-mcp/internal/config"
 	"github.com/shizhMSFT/diagnose-mcp/internal/logger"
@@ -27,34 +28,52 @@ type Proxy struct {
 
 // NewProxy creates a new proxy instance
 func NewProxy(cfg *config.Config) *Proxy {
+	return &Proxy{
+		config:    cfg,
+		clientIn:  os.Stdin,
+		clientOut: os.Stdout,
+	}
+}
+
+// initLogger initializes the logger with session ID pattern expansion
+func (p *Proxy) initLogger(sessionID string) {
 	// Determine log writer (stderr by default, or file if --log-file specified)
 	var logWriter io.Writer = os.Stderr
-	if cfg.LogFile != "" {
-		file, err := os.OpenFile(cfg.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if p.config.LogFile != "" {
+		// Expand patterns in log file path
+		logPath := p.config.LogFile
+		if sessionID != "" {
+			logPath = replacePattern(logPath, "{session}", sessionID)
+		}
+		logPath = replacePattern(logPath, "{pid}", fmt.Sprintf("%d", os.Getpid()))
+
+		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v. Using stderr.\n", cfg.LogFile, err)
+			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v. Using stderr.\n", logPath, err)
 		} else {
 			logWriter = file
 		}
 	}
 
-	var textLogger *logger.Logger
-	var jsonLogger *logger.JSONLogger
+	p.logWriter = logWriter
 
-	if cfg.OutputFormat == config.OutputJSON {
-		jsonLogger = logger.NewJSONLogger(logWriter, cfg.Verbose)
+	if p.config.OutputFormat == config.OutputJSON {
+		p.jsonLogger = logger.NewJSONLogger(logWriter, p.config.Verbose)
 	} else {
-		textLogger = logger.NewLogger(logWriter, cfg.Verbose)
+		p.logger = logger.NewLogger(logWriter, p.config.Verbose)
 	}
+}
 
-	return &Proxy{
-		config:     cfg,
-		logger:     textLogger,
-		jsonLogger: jsonLogger,
-		logWriter:  logWriter,
-		clientIn:   os.Stdin,
-		clientOut:  os.Stdout,
+// replacePattern replaces pattern in string
+func replacePattern(s, pattern, value string) string {
+	result := s
+	for i := 0; i < len(result); i++ {
+		if i+len(pattern) <= len(result) && result[i:i+len(pattern)] == pattern {
+			result = result[:i] + value + result[i+len(pattern):]
+			i += len(value) - 1
+		}
 	}
+	return result
 }
 
 // Run starts the proxy session
@@ -70,14 +89,20 @@ func (p *Proxy) Run(ctx context.Context) error {
 
 // runRemoteProxy runs the remote proxy mode
 func (p *Proxy) runRemoteProxy(ctx context.Context) error {
-	p.logEvent(logger.LogLevelInfo, logger.LogEntryTypeProxy, "Remote proxy session starting")
-
 	var err error
 	p.remoteProxy, err = NewRemoteProxy(p.config.RemoteURL)
 	if err != nil {
+		// Need to initialize logger with empty session for error logging
+		p.initLogger("")
 		p.logError("Failed to create remote proxy", err)
 		return err
 	}
+
+	// Initialize logger with remote session ID (remote-<timestamp>)
+	remoteSessionID := fmt.Sprintf("remote-%d", time.Now().Unix())
+	p.initLogger(remoteSessionID)
+
+	p.logEvent(logger.LogLevelInfo, logger.LogEntryTypeProxy, "Remote proxy session starting")
 
 	p.logProxyEvent("Connecting to remote server", map[string]interface{}{
 		"url": p.config.RemoteURL,
@@ -94,6 +119,15 @@ func (p *Proxy) runRemoteProxy(ctx context.Context) error {
 
 // runLocalProxy runs the local proxy mode
 func (p *Proxy) runLocalProxy(ctx context.Context) error {
+	// Create and start local proxy
+	p.localProxy = NewLocalProxy(p.config.ServerBinary, p.config.ServerArgs)
+
+	// Initialize logger with session ID
+	p.initLogger(p.localProxy.GetSession().ID)
+
+	// Log session start
+	p.logEvent(logger.LogLevelInfo, logger.LogEntryTypeProxy, "Proxy session starting")
+
 	// Log session start
 	p.logEvent(logger.LogLevelInfo, logger.LogEntryTypeProxy, "Proxy session starting")
 
@@ -104,9 +138,6 @@ func (p *Proxy) runLocalProxy(ctx context.Context) error {
 			// Continue anyway - file watching is optional
 		}
 	}
-
-	// Create and start local proxy
-	p.localProxy = NewLocalProxy(p.config.ServerBinary, p.config.ServerArgs)
 
 	// Set message handler to log all messages
 	p.localProxy.SetMessageHandler(p.handleMessage)
