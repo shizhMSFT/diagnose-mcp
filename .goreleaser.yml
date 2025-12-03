@@ -1,0 +1,33 @@
+version: 2
+builds:
+  - main: ./cmd/diagnose-mcp
+    binary: diagnose-mcp
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      # one-line ldflags to bypass the goreleaser bugs
+      - -w -s -buildid= -X github.com/shizhMSFT/diagnose-mcp/internal/config.Version={{.Version}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats:
+      - tar.gz
+    files:
+      - LICENSE
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+release:
+  draft: true
+  prerelease: auto
