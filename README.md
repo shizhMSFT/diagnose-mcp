@@ -9,6 +9,7 @@ MCP Protocol Proxy Server - A transparent proxy for debugging and monitoring Mod
 - **Transparent Pass-Through**: Messages are forwarded without modification
 - **Detailed Logging**: Track requests, responses, notifications, and progress updates
 - **Log File Support**: Write logs to files with dynamic pattern support (`{timestamp}`, `{session}`, `{pid}`)
+- **Azure Blob Logging**: Stream logs to Azure Blob Storage for dev/test environments without file access
 - **File Monitoring**: Watch files for changes and display new content (tail-like behavior, non-blocking)
 - **Text Format** (default): Human-readable timestamps, log levels, message types
 - **JSON Format** (`--json`): Structured output for parsing by other tools
@@ -56,11 +57,30 @@ diagnose-mcp --json ./my-mcp-server | jq .
 # Write logs to file with timestamp and session ID (ordered chronologically)
 diagnose-mcp --log-file "logs/{timestamp}-{session}.log" ./my-mcp-server
 
+# Stream logs to Azure Blob Storage (for dev/test without file access)
+diagnose-mcp --log-blob-url "https://<account>.blob.core.windows.net/<container>/<blob>?<sas>" ./my-mcp-server
+
 # Watch files for changes
 diagnose-mcp --watch /tmp/server.log --watch /tmp/config.json ./my-mcp-server
 
 # Remote WebSocket server
 diagnose-mcp --remote ws://localhost:8080/mcp
 ```
+
+### Azure Blob Storage Logging (Dev/Test)
+
+For environments where log files can't be exported, stream logs to Azure Blob Storage.  
+**Note:** Requires an existing Azure Storage Account.
+
+```bash
+# Quick setup with helper script
+./examples/setup-azure-blob-logging.sh --account mystorageaccount
+
+# Use the generated URL
+export LOG_BLOB_URL="https://..."
+diagnose-mcp --log-blob-url "$LOG_BLOB_URL" ./my-mcp-server
+```
+
+See [examples/azure-blob-logging.md](examples/azure-blob-logging.md) for detailed setup and usage.
 
 For more information, see the [documentation](docs/).

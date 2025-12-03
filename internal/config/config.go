@@ -48,6 +48,10 @@ type Config struct {
 	// LogFile is the path to write logs to (default: stderr)
 	LogFile string
 
+	// LogBlobURL is the Azure Blob Storage URL for log streaming (optional, for dev/test)
+	// Example: https://<account>.blob.core.windows.net/<container>/<blob>?<sas>
+	LogBlobURL string
+
 	// Verbose enables detailed logging (full message payloads)
 	Verbose bool
 
@@ -88,6 +92,7 @@ func ParseFlags(args []string) (*Config, error) {
 	fs.Var(&watchFiles, "w", "File path to monitor (shorthand)")
 	fs.StringVar(&cfg.LogFile, "log-file", "", "Path to write logs (supports {session}, {pid}, {timestamp} patterns, default: stderr)")
 	fs.StringVar(&cfg.LogFile, "l", "", "Path to write logs (shorthand)")
+	fs.StringVar(&cfg.LogBlobURL, "log-blob-url", "", "Azure Blob Storage URL for log streaming (for dev/test, includes SAS token)")
 	fs.BoolVar(&cfg.Verbose, "verbose", false, "Enable detailed logging with full message payloads")
 	fs.BoolVar(&cfg.Verbose, "v", false, "Enable detailed logging (shorthand)")
 
@@ -191,6 +196,7 @@ OPTIONS:
   --remote, -r <url>    URL of remote MCP server (http://, https://, ws://, wss://)
   --watch, -w <path>    Monitor file for changes (can be repeated)
   --log-file, -l <path> Write logs to file (supports {session}, {pid}, {timestamp} patterns)
+  --log-blob-url <url>  Send logs to Azure Blob Storage (for dev/test, includes SAS token)
   --verbose, -v         Enable detailed logging with full message payloads
   --json, -j            Output logs in JSON format
   --help, -h            Display this help message

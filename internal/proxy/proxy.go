@@ -22,6 +22,8 @@ type Proxy struct {
 	logger      *logger.Logger
 	jsonLogger  *logger.JSONLogger
 	logWriter   io.Writer
+	blobWriter  io.Closer // Track blob writer for cleanup
+	fileWriter  *os.File  // Track file writer for cleanup
 	clientIn    io.Reader
 	clientOut   io.Writer
 }
@@ -37,8 +39,21 @@ func NewProxy(cfg *config.Config) *Proxy {
 
 // initLogger initializes the logger with session ID pattern expansion
 func (p *Proxy) initLogger(sessionID string) {
-	// Determine log writer (stderr by default, or file if --log-file specified)
-	var logWriter io.Writer = os.Stderr
+	// Determine log writer (stderr by default, or file/blob if specified)
+	var writers []io.Writer
+
+	// Add blob writer if specified
+	if p.config.LogBlobURL != "" {
+		blobWriter, err := logger.NewBlobWriter(p.config.LogBlobURL, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to create blob writer for %s: %v\n", p.config.LogBlobURL, err)
+		} else {
+			writers = append(writers, blobWriter)
+			p.blobWriter = blobWriter // Store for cleanup
+		}
+	}
+
+	// Add file writer if specified
 	if p.config.LogFile != "" {
 		// Expand patterns in log file path
 		logPath := p.config.LogFile
@@ -52,10 +67,24 @@ func (p *Proxy) initLogger(sessionID string) {
 		// Open with O_SYNC for unbuffered writes
 		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0644)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v. Using stderr.\n", logPath, err)
+			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v\n", logPath, err)
 		} else {
-			logWriter = file
+			writers = append(writers, file)
+			p.fileWriter = file // Store for cleanup
 		}
+	}
+
+	// Use stderr if no writers were added
+	if len(writers) == 0 {
+		writers = append(writers, os.Stderr)
+	}
+
+	// Combine all writers
+	var logWriter io.Writer
+	if len(writers) == 1 {
+		logWriter = writers[0]
+	} else {
+		logWriter = io.MultiWriter(writers...)
 	}
 
 	p.logWriter = logWriter
@@ -81,6 +110,9 @@ func replacePattern(s, pattern, value string) string {
 
 // Run starts the proxy session
 func (p *Proxy) Run(ctx context.Context) error {
+	// Ensure cleanup of blob writer if used
+	defer p.cleanup()
+
 	// Check if remote mode
 	if p.config.ConnectionType == config.ConnectionTypeRemote {
 		return p.runRemoteProxy(ctx)
@@ -88,6 +120,20 @@ func (p *Proxy) Run(ctx context.Context) error {
 
 	// Default to local mode
 	return p.runLocalProxy(ctx)
+}
+
+// cleanup closes any resources (like blob writer)
+func (p *Proxy) cleanup() {
+	if p.fileWriter != nil {
+		if err := p.fileWriter.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to close file writer: %v\n", err)
+		}
+	}
+	if p.blobWriter != nil {
+		if err := p.blobWriter.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to close blob writer: %v\n", err)
+		}
+	}
 }
 
 // runRemoteProxy runs the remote proxy mode
