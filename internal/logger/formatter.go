@@ -28,7 +28,14 @@ func NewJSONLogger(writer io.Writer, verbose bool) *JSONLogger {
 // Log writes a log entry in JSON format
 func (l *JSONLogger) Log(entry *LogEntry) error {
 	jsonEntry := l.toJSONEntry(entry)
-	return l.encoder.Encode(jsonEntry)
+	if err := l.encoder.Encode(jsonEntry); err != nil {
+		return err
+	}
+	// Sync if the writer supports it (for immediate flush)
+	if syncer, ok := l.writer.(interface{ Sync() error }); ok {
+		syncer.Sync()
+	}
+	return nil
 }
 
 // JSONEntry represents a log entry in JSON format

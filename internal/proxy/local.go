@@ -195,8 +195,14 @@ func (p *LocalProxy) ForwardClientMessage(data []byte) error {
 		return fmt.Errorf("proxy not running")
 	}
 
+	// Strip newline for parsing only
+	lineData := data
+	if len(data) > 0 && data[len(data)-1] == '\n' {
+		lineData = data[:len(data)-1]
+	}
+
 	// Parse and intercept the message
-	msg, err := mcp.ParseMessage(data)
+	msg, err := mcp.ParseMessage(lineData)
 	if err != nil {
 		p.session.IncrementErrorCount()
 		return fmt.Errorf("failed to parse client message: %w", err)
@@ -208,7 +214,7 @@ func (p *LocalProxy) ForwardClientMessage(data []byte) error {
 		p.sessionID,
 		MessageDirectionOutbound,
 		msg,
-		data,
+		data, // Keep newline for forwarding
 		p.sequenceNumber,
 	)
 
@@ -235,21 +241,25 @@ func (p *LocalProxy) ReadServerMessage() (*MCPMessage, error) {
 		return nil, fmt.Errorf("proxy not running")
 	}
 
-	// Read newline-delimited message
-	scanner := bufio.NewScanner(p.stdout)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			p.session.IncrementErrorCount()
-			return nil, fmt.Errorf("failed to read from server stdout: %w", err)
+	// Read newline-delimited message (keeping the newline)
+	reader := bufio.NewReader(p.stdout)
+	data, err := reader.ReadBytes('\n')
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
 		}
-		// EOF
-		return nil, io.EOF
+		p.session.IncrementErrorCount()
+		return nil, fmt.Errorf("failed to read from server stdout: %w", err)
 	}
 
-	data := scanner.Bytes()
+	// Strip newline for parsing only
+	lineData := data
+	if len(data) > 0 && data[len(data)-1] == '\n' {
+		lineData = data[:len(data)-1]
+	}
 
 	// Parse the message
-	msg, err := mcp.ParseMessage(data)
+	msg, err := mcp.ParseMessage(lineData)
 	if err != nil {
 		p.session.IncrementErrorCount()
 		// Include the actual data in the error message to help diagnose issues
@@ -265,8 +275,8 @@ func (p *LocalProxy) ReadServerMessage() (*MCPMessage, error) {
 			SessionID:      p.sessionID,
 			Direction:      MessageDirectionInbound,
 			Timestamp:      time.Now(),
-			Message:        nil, // nil indicates parse failure
-			RawBytes:       data,
+			Message:        nil,  // nil indicates parse failure
+			RawBytes:       data, // Keep newline for forwarding
 			SequenceNumber: p.sequenceNumber,
 		}
 
@@ -281,23 +291,13 @@ func (p *LocalProxy) ReadServerMessage() (*MCPMessage, error) {
 
 	// Create MCP message with metadata
 	p.sequenceNumber++
-	mcpMsg := NewMCPMessage(
+	return NewMCPMessage(
 		p.sessionID,
 		MessageDirectionInbound,
 		msg,
-		data,
+		data, // Keep newline for forwarding
 		p.sequenceNumber,
-	)
-
-	// Call message handler if set
-	if p.messageHandler != nil {
-		if err := p.messageHandler(mcpMsg); err != nil {
-			return nil, fmt.Errorf("message handler failed: %w", err)
-		}
-	}
-
-	p.session.IncrementMessageCount()
-	return mcpMsg, nil
+	), nil
 }
 
 // GetSession returns the proxy session

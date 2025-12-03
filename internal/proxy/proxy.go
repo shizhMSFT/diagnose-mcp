@@ -47,7 +47,8 @@ func (p *Proxy) initLogger(sessionID string) {
 		}
 		logPath = replacePattern(logPath, "{pid}", fmt.Sprintf("%d", os.Getpid()))
 
-		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		// Open with O_SYNC for unbuffered writes
+		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to open log file %s: %v. Using stderr.\n", logPath, err)
 		} else {
@@ -240,9 +241,6 @@ func (p *Proxy) forwardServerToClient(ctx context.Context) error {
 				p.logError("Failed to write to client stdout", err)
 				return err
 			}
-			if _, err := p.clientOut.Write([]byte("\n")); err != nil {
-				return err
-			}
 		}
 	}
 }
@@ -376,8 +374,9 @@ func (ls *lineScanner) ReadLine() ([]byte, error) {
 		// Look for newline
 		for i := 0; i < len(ls.buffer); i++ {
 			if ls.buffer[i] == '\n' {
-				line := make([]byte, i)
-				copy(line, ls.buffer[:i])
+				// Include the newline in the returned data
+				line := make([]byte, i+1)
+				copy(line, ls.buffer[:i+1])
 				ls.buffer = ls.buffer[i+1:]
 				return line, nil
 			}

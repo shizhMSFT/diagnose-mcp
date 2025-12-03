@@ -27,8 +27,14 @@ func NewLogger(writer io.Writer, verbose bool) *Logger {
 // Log writes a log entry in text format
 func (l *Logger) Log(entry *LogEntry) error {
 	formatted := l.formatText(entry)
-	_, err := l.writer.Write([]byte(formatted + "\n"))
-	return err
+	if _, err := l.writer.Write([]byte(formatted + "\n")); err != nil {
+		return err
+	}
+	// Sync if the writer supports it (for immediate flush)
+	if syncer, ok := l.writer.(interface{ Sync() error }); ok {
+		syncer.Sync()
+	}
+	return nil
 }
 
 // formatText formats a log entry as human-readable text
