@@ -214,8 +214,8 @@ For more information, see the documentation.
 `
 }
 
-// Version returns the version string
-const Version = "1.0.0"
+// Version is the version string, can be overridden at build time via ldflags
+var Version = "dev"
 
 func VersionString() string {
 	return fmt.Sprintf("diagnose-mcp version %s", Version)
