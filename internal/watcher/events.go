@@ -159,43 +159,55 @@ func (w *FileWatcher) eventLoop() {
 
 // handleEvent processes a single fsnotify event
 func (w *FileWatcher) handleEvent(event fsnotify.Event) {
+	// Normalize event path to match stored paths (forward slashes on all platforms)
+	eventPath := filepath.Clean(event.Name)
+
 	w.mu.RLock()
-	defer w.mu.RUnlock()
-
 	// Check if this file is being watched
-	state, exists := w.states[event.Name]
-	if !exists {
-		return
-	}
-
-	eventChan := w.eventChans[event.Name]
+	eventChan := w.eventChans[eventPath]
 	if eventChan == nil {
+		w.mu.RUnlock()
 		return
 	}
+	_, exists := w.states[eventPath]
+	if !exists {
+		w.mu.RUnlock()
+		return
+	}
+	w.mu.RUnlock()
 
 	var fileEvent FileEvent
-	fileEvent.Path = event.Name
+	fileEvent.Path = eventPath
 	fileEvent.Timestamp = time.Now()
 
 	switch {
 	case event.Op&fsnotify.Create == fsnotify.Create:
 		fileEvent.Type = EventTypeCreated
-		// Update state for created file
-		if newState, err := NewFileState(event.Name); err == nil {
-			w.states[event.Name] = newState
+		// Update state for created file (need write lock)
+		if newState, err := NewFileState(eventPath); err == nil {
+			w.mu.Lock()
+			w.states[eventPath] = newState
+			w.mu.Unlock()
 			fileEvent.Size = newState.Size
 		}
 
 	case event.Op&fsnotify.Write == fsnotify.Write:
 		fileEvent.Type = EventTypeModified
-		// Update state and get new content
-		content, err := state.Update()
-		if err != nil {
-			// Log error but continue with event
-			_ = err // TODO: consider logging this error
+		// Get state again to ensure we have the latest version
+		w.mu.RLock()
+		state := w.states[eventPath]
+		w.mu.RUnlock()
+
+		if state != nil {
+			// Update state and get new content
+			content, err := state.Update()
+			if err != nil {
+				// Log error but continue with event
+				_ = err // TODO: consider logging this error
+			}
+			fileEvent.Content = content
+			fileEvent.Size = state.Size
 		}
-		fileEvent.Content = content
-		fileEvent.Size = state.Size
 
 	case event.Op&fsnotify.Remove == fsnotify.Remove:
 		fileEvent.Type = EventTypeDeleted

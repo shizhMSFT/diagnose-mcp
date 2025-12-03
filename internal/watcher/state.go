@@ -4,6 +4,7 @@ package watcher
 import (
 	"fmt"
 	"os"
+	"sync"
 )
 
 // FileState tracks the state of a watched file
@@ -16,6 +17,8 @@ type FileState struct {
 	Offset int64
 	// LastModified is the last modification time
 	LastModified int64
+	// mu protects concurrent access to state fields
+	mu sync.Mutex
 }
 
 // NewFileState creates a new file state tracker
@@ -37,15 +40,23 @@ func NewFileState(path string) (*FileState, error) {
 
 // Update updates the file state and returns new content
 func (fs *FileState) Update() (string, error) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
 	oldSize := fs.Size
+	oldOffset := fs.Offset
 
 	if err := fs.readState(); err != nil {
 		return "", err
 	}
 
 	// Detect file truncation or replacement
-	if fs.Size < oldSize {
-		// File was truncated/replaced - reset offset
+	// File is considered rotated if:
+	// 1. Size decreased (truncated)
+	// 2. New size is less than our current offset (file was replaced with smaller content)
+	// 3. Offset would be beyond new size
+	if fs.Size < oldSize || fs.Size < oldOffset || oldOffset > fs.Size {
+		// File was truncated/replaced - reset offset to read from beginning
 		fs.Offset = 0
 	}
 
