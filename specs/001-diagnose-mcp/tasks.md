@@ -131,12 +131,12 @@
 
 ### Implementation for User Story 3
 
-- [x] T048 [P] [US3] Define FileWatch entity in internal/watcher/state.go
-- [x] T049 [P] [US3] Define FileEvent types and structures in internal/watcher/events.go
-- [x] T050 [US3] Implement fsnotify watcher initialization in internal/watcher/events.go (depends on T048, T049)
-- [x] T051 [US3] Implement file event detection (created, modified, deleted) in internal/watcher/events.go
-- [x] T052 [US3] Implement line count tracking for text files in internal/watcher/state.go
-- [x] T053 [US3] Implement file event logging integration in internal/watcher/events.go
+- [x] T048 [P] [US3] Implement fspoll-go watcher with direct logging callback in internal/watcher/watcher.go
+- [x] T049 [P] [US3] Integrate watcher with proxy for file monitoring
+- [x] T050 [US3] Removed (consolidated into T048)
+- [x] T051 [US3] Removed (consolidated into T048)
+- [x] T052 [US3] Removed (handled by fspoll-go)
+- [x] T053 [US3] Removed (handled by fspoll-go)
 - [x] T054 [US3] Add --watch flag parsing (multiple allowed) in internal/config/config.go
 - [x] T055 [US3] Integrate file watching into proxy session in internal/proxy/proxy.go
 - [x] T056 [US3] Implement chronological event interleaving (MCP + file events) in internal/logger/logger.go

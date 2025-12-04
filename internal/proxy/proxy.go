@@ -125,6 +125,9 @@ func (p *Proxy) Run(ctx context.Context) error {
 
 // cleanup closes any resources (like blob uploader)
 func (p *Proxy) cleanup() {
+	if p.fileWatcher != nil {
+		p.fileWatcher.Stop()
+	}
 	if p.fileWriter != nil {
 		if err := p.fileWriter.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to close file writer: %v\n", err)
@@ -447,12 +450,9 @@ func (p *Proxy) startFileWatching(ctx context.Context) error {
 
 	p.fileWatcher = fw
 
-	// Create event channel
-	eventChan := make(chan watcher.FileEvent, 100)
-
 	// Watch all configured files
 	for _, filePath := range p.config.WatchedFiles {
-		if err := fw.Watch(filePath, eventChan); err != nil {
+		if err := fw.Watch(filePath, p.logFileEvent); err != nil {
 			p.logError(fmt.Sprintf("Failed to watch file: %s", filePath), err)
 			continue
 		}
@@ -461,33 +461,25 @@ func (p *Proxy) startFileWatching(ctx context.Context) error {
 		p.logEntry(entry)
 	}
 
-	// Start goroutine to handle file events
-	go p.handleFileEvents(ctx, eventChan)
-
 	return nil
 }
 
-// handleFileEvents processes file system events
-func (p *Proxy) handleFileEvents(ctx context.Context, eventChan <-chan watcher.FileEvent) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case event := <-eventChan:
-			if event.Type == watcher.EventTypeCreated || event.Type == watcher.EventTypeDeleted {
-				// Single line: "created <path>" or "deleted <path>"
-				message := string(event.Type) + " " + event.Path
-				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, message)
-				p.logEntry(entry)
-			} else if event.Type == watcher.EventTypeModified && event.Content != "" {
-				// Modified with content: "modified <path>" with content in context
-				message := "modified " + event.Path
-				entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, message)
-				entry.Context = map[string]interface{}{
-					"content": event.Content,
-				}
-				p.logEntry(entry)
+// logFileEvent logs file system events
+func (p *Proxy) logFileEvent(eventType, path, content string) {
+	message := eventType + " " + path
+	entry := logger.NewLogEntry(logger.LogLevelInfo, logger.LogEntryTypeFile, message)
+
+	switch eventType {
+	case "created", "deleted":
+		// Single line: "created <path>" or "deleted <path>"
+		p.logEntry(entry)
+	case "modified":
+		if content != "" {
+			// Modified with content: "modified <path>" with content in context
+			entry.Context = map[string]interface{}{
+				"content": content,
 			}
+			p.logEntry(entry)
 		}
 	}
 }
