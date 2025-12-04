@@ -9,29 +9,8 @@ import (
 	"github.com/shizhMSFT/fspoll-go"
 )
 
-// EventType represents the type of file system event
-type EventType string
-
-const (
-	// EventTypeCreated indicates a file was created
-	EventTypeCreated EventType = "created"
-	// EventTypeModified indicates a file was modified
-	EventTypeModified EventType = "modified"
-	// EventTypeDeleted indicates a file was deleted
-	EventTypeDeleted EventType = "deleted"
-)
-
-// FileEvent represents a file system event
-type FileEvent struct {
-	// Type is the event type (created, modified, deleted)
-	Type EventType
-	// Path is the absolute path to the file
-	Path string
-	// Timestamp when the event occurred
-	Timestamp time.Time
-	// Content is the new content added (for modifications)
-	Content string
-}
+// LogFunc is a function that logs file events
+type LogFunc func(eventType, path, content string)
 
 // FileWatcher watches files for changes using polling
 type FileWatcher struct {
@@ -48,7 +27,7 @@ func NewFileWatcher() (*FileWatcher, error) {
 }
 
 // Watch starts watching a file for changes
-func (w *FileWatcher) Watch(path string, eventChan chan<- FileEvent) error {
+func (w *FileWatcher) Watch(path string, logFunc LogFunc) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -56,31 +35,18 @@ func (w *FileWatcher) Watch(path string, eventChan chan<- FileEvent) error {
 		return fmt.Errorf("watcher has been stopped")
 	}
 
-	// Create a callback that translates fspoll events to FileEvent
+	// Create a callback that logs events directly
 	callback := func(filePath string, event fspoll.Event, content []byte) {
-		fileEvent := FileEvent{
-			Path:      filePath,
-			Timestamp: time.Now(),
-			Content:   string(content),
-		}
-
+		var eventType string
 		switch event {
 		case fspoll.EventCreate:
-			fileEvent.Type = EventTypeCreated
-		case fspoll.EventAppend:
-			fileEvent.Type = EventTypeModified
-		case fspoll.EventTruncate:
-			fileEvent.Type = EventTypeModified
+			eventType = "created"
+		case fspoll.EventAppend, fspoll.EventTruncate:
+			eventType = "modified"
 		case fspoll.EventDelete:
-			fileEvent.Type = EventTypeDeleted
+			eventType = "deleted"
 		}
-
-		// Send event to channel (non-blocking)
-		select {
-		case eventChan <- fileEvent:
-		default:
-			// Channel full, skip event
-		}
+		logFunc(eventType, filePath, string(content))
 	}
 
 	// Create a new fspoll FileWatcher with 1 second polling interval
