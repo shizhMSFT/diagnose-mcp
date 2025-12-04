@@ -125,6 +125,9 @@ func (p *Proxy) Run(ctx context.Context) error {
 
 // cleanup closes any resources (like blob uploader)
 func (p *Proxy) cleanup() {
+	if p.fileWatcher != nil {
+		p.fileWatcher.Stop()
+	}
 	if p.fileWriter != nil {
 		if err := p.fileWriter.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to close file writer: %v\n", err)
