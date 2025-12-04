@@ -7,14 +7,14 @@
 
 ## Summary
 
-Build a transparent MCP protocol proxy server that intercepts and logs all MCP messages (requests, responses, notifications, progress updates) between clients and servers. Supports both local stdio-based and remote HTTP/WebSocket MCP servers. Includes file monitoring capability to correlate MCP traffic with external log files. Technical approach: Go 1.25.4 CLI application with goroutines for concurrent message handling, fsnotify for file watching, structured logging with JSON/text output formats.
+Build a transparent MCP protocol proxy server that intercepts and logs all MCP messages (requests, responses, notifications, progress updates) between clients and servers. Supports both local stdio-based and remote HTTP/WebSocket MCP servers. Includes file monitoring capability to correlate MCP traffic with external log files. Technical approach: Go 1.25.4 CLI application with goroutines for concurrent message handling, polling-based file watching with fspoll-go, structured logging with JSON/text output formats.
 
 ## Technical Context
 
 **Language/Version**: Go 1.25.4  
 **Primary Dependencies**: 
 - `github.com/gorilla/websocket` - WebSocket client for remote MCP servers
-- `github.com/fsnotify/fsnotify` - Cross-platform file system notifications
+- `github.com/shizhMSFT/fspoll-go` - Polling-based file system watching
 - Standard library: `os/exec`, `encoding/json`, `log/slog`, `net/http`, `io`, `bufio`, `context`, `os/signal`
 
 **Storage**: N/A (stateless proxy, logs to stdout)  
@@ -125,9 +125,7 @@ internal/
 │   ├── formatter.go         # Human-readable vs JSON output
 │   └── types.go             # Log entry structures
 ├── watcher/
-│   ├── watcher.go           # File watching orchestration (fsnotify)
-│   ├── events.go            # File event detection and logging
-│   └── state.go             # File state tracking (size, lines)
+│   └── watcher.go           # File watching using fspoll-go with direct logging
 └── config/
     ├── config.go            # Configuration parsing from CLI flags
     └── validation.go        # Input validation
@@ -169,7 +167,7 @@ Makefile                     # Build, test, lint targets
 All design choices align with constitution principles:
 - Single project structure (no unnecessary complexity)
 - Standard Go project layout (widely accepted convention)
-- Minimal dependencies (gorilla/websocket, fsnotify - both well-maintained)
+- Minimal dependencies (gorilla/websocket, fspoll-go - both well-maintained)
 - Direct implementation without abstraction layers (YAGNI principle)
 
 ---
@@ -181,7 +179,7 @@ All design choices align with constitution principles:
 **Key Decisions**:
 - MCP Protocol: JSON-RPC 2.0 with newline-delimited stdio transport
 - WebSocket: `gorilla/websocket` v1.5.1 (mature, battle-tested)
-- File Watching: `fsnotify/fsnotify` v1.7.0 (cross-platform, low latency)
+- File Watching: `github.com/shizhMSFT/fspoll-go` v0.1.0 (polling-based, cross-platform reliable)
 - Logging: `log/slog` standard library (sufficient performance, native)
 - Process Management: `os/exec` standard library
 - Signal Handling: `os/signal` with context cancellation

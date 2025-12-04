@@ -58,24 +58,24 @@
 
 ---
 
-### 3. File System Watching (fsnotify)
+### 3. File System Watching (fspoll-go)
 
 **Question**: How to efficiently watch multiple files across Windows/macOS/Linux with minimal latency?
 
 **Research Findings**:
-- **fsnotify/fsnotify**: Cross-platform file system notifications
-  - Version: v1.7.0 (latest stable)
-  - Backends: inotify (Linux), FSEvents (macOS), ReadDirectoryChangesW (Windows)
-  - Features: Create, Write, Remove, Rename, Chmod events
-  - Latency: <100ms typical (OS-dependent)
-  - Limitations: Doesn't auto-detect line appends (only file Write events)
-- **Alternative - Polling**: Check file mtime/size periodically
-  - Pros: Simple, no OS dependencies
-  - Cons: Higher latency (100ms+ poll interval), higher CPU usage
+- **shizhMSFT/fspoll-go**: Polling-based file system watching
+  - Version: v0.1.0 (latest stable)
+  - Approach: Periodic polling with file metadata and content tracking
+  - Features: Create, Append, Truncate, Delete events with content capture
+  - Latency: ~1 second (configurable poll interval)
+  - Benefits: Reliable on network filesystems, consistent cross-platform behavior
+- **Alternative - fsnotify**: Event-based notifications
+  - Pros: Lower latency with native OS events
+  - Cons: Unreliable on network filesystems, platform-specific behavior
 
-**Decision**: Use `github.com/fsnotify/fsnotify` v1.7.0 with tail-like content reading
+**Decision**: Use `github.com/shizhMSFT/fspoll-go` v0.1.0 with direct logging callbacks
 
-**Rationale**: Native OS event APIs provide lowest latency (<500ms requirement). For content display, will track file offset and read new content on Write events (similar to `tail -f` behavior).
+**Rationale**: Polling provides more reliable behavior across different filesystems (especially network mounts) with acceptable latency for diagnostic logging. Direct callback design simplifies implementation by eliminating event channels and goroutines.
 
 **Implementation Approach**:
 ```
