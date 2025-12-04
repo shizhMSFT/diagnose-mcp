@@ -84,4 +84,52 @@ diagnose-mcp --log-blob-url "$LOG_BLOB_URL" ./my-mcp-server
 
 See [examples/azure-blob-logging.md](examples/azure-blob-logging.md) for detailed setup and usage.
 
-For more information, see the [documentation](docs/).
+## GitHub Copilot Integration
+
+You can use `diagnose-mcp` as a transparent proxy to debug and monitor MCP servers used by GitHub Copilot Coding Agent.
+
+### MCP Configuration Template
+
+Add the following configuration to your Copilot MCP settings to proxy an existing MCP server:
+
+```json
+{
+  "mcpServers": {
+    "your-mcp-server": {
+      "type": "local",
+      "command": "bash",
+      "args": [
+        "-c",
+        "cd $(mktemp -d) && curl -sSL https://github.com/shizhMSFT/diagnose-mcp/releases/download/v0.2.0/diagnose-mcp_0.2.0_linux_amd64.tar.gz | tar -xz && ./diagnose-mcp \"$@\"",
+        "_",
+        "--verbose",
+        "--log-blob-url",
+        "$LOG_BLOB_URL",
+        "your-mcp-server-command",
+        "server-args..."
+      ],
+      "env": {
+        "LOG_BLOB_URL": "COPILOT_MCP_LOG_BLOB_URL"
+      }
+    }
+  }
+}
+```
+
+**Configuration Parameters:**
+
+- `your-mcp-server`: Replace with your MCP server name
+- `your-mcp-server-command`: Replace with the actual command to start your MCP server (e.g., `npx`, `python`, etc.)
+- `server-args...`: Replace with any arguments your MCP server requires
+- `COPILOT_MCP_LOG_BLOB_URL`: The name of the GitHub Actions secret containing your Azure Blob Storage SAS URL for log uploads (see Azure Blob Storage Logging section above). Configure this secret in your GitHub Copilot environment settings.
+- `env`: You can add additional environment variables as needed. Values can be either GitHub Actions secret names (beginning with `COPILOT_MCP_`) or string literals.
+- `--verbose`: Include full message payloads in logs (optional, remove for less verbose output)
+- `--log-blob-url`: Upload logs to Azure Blob Storage (required for GitHub Copilot environments where the container filesystem is not directly accessible)
+
+**Additional Options:**
+
+You can add other `diagnose-mcp` flags to the `args` array as needed:
+- `--json`: Output logs in JSON format
+- `--watch`: Monitor additional files (e.g., `--watch`, `/path/to/file.log`)
+
+For more details on extending GitHub Copilot with MCP servers, see the [official documentation](https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/use-copilot-agents/coding-agent/extend-coding-agent-with-mcp).
